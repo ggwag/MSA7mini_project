@@ -9,7 +9,8 @@ public class Board {
 	private int bno;			// 게시물번호
 	private String btitle;	// 제목
 	private String bcontent;	// 내용
-	private String bwriter; 	// 글쓴이
+	private String bwriter; 	// 작성자
+	private int bcount;
 	private Date bdate;	// 작성일시
 
 
