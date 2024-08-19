@@ -30,21 +30,38 @@ public class Member {
     }
 	
 	public void memberMenu() {
-		System.out.println("-----------------------------------------------------------------------");
-		System.out.println("=========================== 미니 프로젝트 1차 =============================");
-		System.out.println("-----------------------------------------------------------------------");
-		System.out.println("메뉴: 1.회원가입 | 2.로그인 | 3.아이디 찾기 | 4.비밀번호 변경  | 5.종료");
-		System.out.print("메뉴선택: ");
-		String menuNo = scanner.nextLine();
-		System.out.println();
-		
-		switch(menuNo) {
-			case "1" -> signup();
-			case "2" -> signin();
-//			case "3" -> findId();
-//			case "4" -> findpassword();
-//			case "5" -> exit();
+		boolean loggedIn = false;
+		while(!loggedIn) {
+			System.out.println("-----------------------------------------------------------------------");
+			System.out.println("=========================== 미니 프로젝트 1차 =============================");
+			System.out.println("-----------------------------------------------------------------------");
+			System.out.println("메뉴: 1.회원가입 | 2.로그인 | 3.아이디 찾기 | 4.비밀번호 찾기  | 5.종료");
+			System.out.print("메뉴선택: ");
+			String menuNo = scanner.nextLine();
+			System.out.println();
+			switch(menuNo) {
+				case "1" -> signup();
+				case "2" -> {
+					signin();
+					if(this.isLoggedIn) {
+						loggedIn = true;
+					}
+				}
+				case "3" -> findId();
+	//			case "4" -> findpassword();
+				case "5" -> exit();
+			}
 		}
+	}
+	public void exit() {
+		if(conn != null) {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+			}
+		}
+		System.out.println("=============================  프로그램 종료 ==============================");
+		System.exit(0);
 	}
 	//게시판 -> 멤버 회원가입
 	public void signup() {
@@ -102,19 +119,15 @@ public class Member {
         // 사용자로부터 아이디와 비밀번호 입력 받기
         System.out.print("아이디 입력: ");
         this.mid = scanner.nextLine();
-
         System.out.print("비밀번호 입력: ");
         this.mpassword = scanner.nextLine();
-		
         
 		try {
 			//SQL문 작성
-			String sql = "SELECT mid FROM membertable WHERE mid=? AND mpassword=?";
-
+			String sql = "SELECT mid FROM membertable WHERE mid=? AND mpassword=? AND menabled = 1";
 			//PreparedStatement 얻기 및 값 지정
 			PreparedStatement pstmt = conn.prepareStatement(sql);
-
-			// 매개변수 바인딩
+			
 	        pstmt.setString(1, this.mid);  // 아이디 설정
 	        pstmt.setString(2, this.mpassword);  // 비밀번호 설정
 			
@@ -123,16 +136,15 @@ public class Member {
 				//멤버 계정이 있을 경우
 				System.out.println("로그인 성공: " + rs.getString("mid"));
 				this.isLoggedIn = true;  	// 로그인 성공시 상태 업데이트
-	            // 2. 로그인 기록 삽입 및 로그인 시간 업데이트
+	            // 로그인 기록 삽입 및 로그인 시간 업데이트
 	            logLoginTime();
-
-	            // 3. 로그인 시간 출력
+	            // 로그인 시간 출력
 	            displayLoginTime();
-				
 			} else {                           
 				//계정이 없거나 아이디, 비밀번호가 틀릴 경우
 				System.out.println("로그인 실패: 잘못된 아이디 또는 비밀번호 입니다.");
 				this.isLoggedIn = false;	// 로그인 실패시 상태 업데이트
+				memberMenu();
 			}
 			rs.close();
 			pstmt.close();
@@ -210,12 +222,92 @@ public class Member {
 	    }
 	}
 	
-    // 로그인 상태를 확인
+    // 로그인 상태 확인
     public boolean isLoggedIn() {
     	 return mid != null && !mid.trim().isEmpty();
     }
     
-  
-	
+    
+    //회원정보 수정
+    public void updateMember() {
+        System.out.print("비밀번호를 입력해주세요: ");
+        String inputPassword = scanner.nextLine();
 
+        // 비밀번호가 맞을 경우, 정보 수정
+        if (inputPassword.equals(this.mpassword)) {
+            System.out.println("수정할 정보를 입력하세요.");
+            System.out.print("전화번호: ");
+            this.setMphone(scanner.nextLine());
+            System.out.print("주소: ");
+            this.setMaddress(scanner.nextLine());
+            
+            // 회원 정보 업데이트
+            try {
+                String updateSql = "UPDATE membertable SET mphone=?, maddress=? WHERE mid=?";
+                try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                    pstmt.setString(2, this.getMphone());
+                    pstmt.setString(3, this.getMaddress());
+                    pstmt.setString(5, this.getMid());
+                    pstmt.executeUpdate();
+                    System.out.println("회원 정보가 수정되었습니다.");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("비밀번호가 틀렸습니다. 잘못된 접근입니다.");
+        }
+    }
+
+    public void withdraw() {
+        System.out.print("비밀번호를 입력해주세요: ");
+        String inputPassword = scanner.nextLine();
+
+        if (inputPassword.equals(this.mpassword)) {
+            try {
+            	// 회원을 비활성화 상태로 변경
+                String deleteSql = "UPDATE membertable SET menabled  = 0 WHERE mid=?";
+                try (PreparedStatement pstmt = conn.prepareStatement(deleteSql)) {
+                    pstmt.setString(1, this.getMid());
+                    pstmt.executeUpdate();
+                    System.out.println("회원 탈퇴가 완료되었습니다.");
+                    memberMenu();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("비밀번호가 틀렸습니다. 잘못된 접근입니다.");
+        }
+    }
+    
+    public void findId() {
+    	//이름, 전화번호 입력받기
+    	System.out.println("이름: ");
+    	String mname = scanner.nextLine();
+    	System.out.print("전화번호 입력: ");
+    	String mphone = scanner.nextLine();
+    	try {
+			// SQL문 작성
+			String sql = "SELECT mid FROM membertable WHERE mname=? AND mphone=?";
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, mname);  
+			pstmt.setString(2, mphone);  
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {                        
+			    // 아이디가 있는 경우
+			    System.out.println("아이디 : " + rs.getString("mid"));
+			} else {                           
+			    // 아이디가 없는 경우
+			    System.out.println("아이디를 찾을 수 없습니다.");
+			    }
+			    rs.close();
+			    pstmt.close();
+			} catch (Exception e) {
+			    e.printStackTrace();
+			}
+    }
+    
+    
 }
