@@ -303,26 +303,93 @@ public class Member {
         // 비밀번호가 맞을 경우, 정보 수정
         if (inputPassword.equals(this.mpassword)) {
             System.out.println("수정할 정보를 입력하세요.");
-            System.out.print("전화번호: ");
-            this.setMphone(scanner.nextLine());
-            System.out.print("주소: ");
-            this.setMaddress(scanner.nextLine());
-            
-            // 회원 정보 업데이트
+            System.out.println("메뉴: 1.개인정보 수정 |  2.비밀번호 변경  |  3.돌아가기  ");
+            System.out.print("메뉴선택: ");
+			String menuNo = scanner.nextLine();
+			System.out.println();
+			switch(menuNo) {
+				case "1" : 
+					updateUser();			//회원정보 수정
+					break;
+				case "2" : 
+					updateMpassword();		//비밀번호 변경
+					break;
+				
+				case "3" : 
+					memberMenu();			//돌아가기
+					break;
+				default  :
+					System.out.println("올바른 접근이 아닙니다.");
+					updateMember();
+					break;
+			}
+        } else {
+            System.out.println("비밀번호가 틀렸습니다. 잘못된 접근입니다.");
+        }
+    }
+    
+    // 회원정보 수정
+    public void updateUser() {
+        System.out.println("수정할 정보를 입력하세요.");
+        System.out.print("새 전화번호: ");
+        String newPhone = scanner.nextLine();
+        System.out.print("새 주소: ");
+        String newAddress = scanner.nextLine();
+
+        // DB 업데이트
+        try {
+            String updateSql = "UPDATE membertable SET mphone=?, maddress=? WHERE mid=?";
+            try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                pstmt.setString(1, newPhone);
+                pstmt.setString(2, newAddress);
+                pstmt.setString(3, this.mid);
+                pstmt.executeUpdate();
+                System.out.println("회원 정보가 수정되었습니다.");
+                this.setMphone(newPhone);
+                this.setMaddress(newAddress);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("회원 정보 수정 중 오류가 발생했습니다.");
+        }
+    }
+    
+    public void updateMpassword() {
+    	// 현재 비밀번호 확인
+        System.out.print("현재 비밀번호를 입력해주세요: ");
+        String currentPassword = scanner.nextLine();
+
+        // 현재 비밀번호가 맞는지 확인
+        if (!currentPassword.equals(this.mpassword)) {
+            System.out.println("현재 비밀번호가 틀렸습니다. 변경을 취소합니다.");
+            return; // 비밀번호가 틀린 경우 메소드 종료
+        }
+        // 비밀번호 변경
+        System.out.print("새 비밀번호를 입력해주세요: ");
+        String newPassword = scanner.nextLine();
+        System.out.print("새 비밀번호 확인: ");
+        String confirmPassword = scanner.nextLine();
+        // 새 비밀번호와 비밀번호 일치 확인
+        if (newPassword.equals(confirmPassword)) {
             try {
-                String updateSql = "UPDATE membertable SET mphone=?, maddress=? WHERE mid=?";
-                try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
-                    pstmt.setString(1, this.getMphone());
-                    pstmt.setString(2, this.getMaddress());
-                    pstmt.setString(3, this.mid);
+                String updatePasswordSql = "UPDATE membertable SET mpassword=? WHERE mid=?";
+                try (PreparedStatement pstmt = conn.prepareStatement(updatePasswordSql)) {
+                    pstmt.setString(1, newPassword);
+                    pstmt.setString(2, this.mid);
                     pstmt.executeUpdate();
-                    System.out.println("회원 정보가 수정되었습니다.");
+                    System.out.println("비밀번호가 변경되었습니다. 다시 로그인 해주세요.");
+                    this.mpassword = newPassword;  // 비밀번호 업데이트
+                    // 로그아웃 후 회원 메뉴로 돌아가기
+                    signout();  		// 로그아웃 메소드 호출
+                    memberMenu();      	// 회원 메뉴로 돌아가기
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+                System.out.println("비밀번호 변경 중 오류가 발생했습니다.");
             }
         } else {
-            System.out.println("비밀번호가 틀렸습니다. 잘못된 접근입니다.");
+            System.out.println("비밀번호가 일치하지 않습니다. 다시 시도해주세요.");
+            updateMpassword();  // 비밀번호 변경 재시도
         }
     }
     
