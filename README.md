@@ -8,7 +8,7 @@ Eclipse와 Oracle DataBase를 활용하여 순수 java만을 이용해 회원용
 2024.08.14 ~ 2024.08.21
 
 ## 💻 개발환경
-Version : java22
+Version : Eclipse IDE java22
 
 DateBase : Oracle SQL Developer 23.1.1.345
 
