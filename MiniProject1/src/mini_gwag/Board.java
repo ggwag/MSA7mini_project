@@ -30,9 +30,9 @@ public class Board {
 	
 	//게시물 목록 및 페이징 처리
 	public void list(int currentPage) {
-		int page_size = 10; //한 페이지에 출력한 게시물 수
-		int startRow = (currentPage - 1) * page_size + 1;
-	    int endRow = currentPage * page_size;
+		int page_size = 10; 								// 한 페이지에 출력할 게시물 수
+		int startRow = (currentPage - 1) * page_size + 1;	// 현재 페이지 시작 행 번
+	    int endRow = currentPage * page_size;				// 현재 페이지 종료 행 번호
 		
 		System.out.println();
 		System.out.println("[게시물 목록]");
@@ -42,6 +42,7 @@ public class Board {
 
 		//boardtable에서 게시물 정보를 페이징처리해서 가져오기
 		try {
+			// 게시물 번호를 기준으로 내림차순 정렬 후 페이지 번호에 맞는 게시물 조회
 			String sql = "" +
 					"select * from (" +
 		            "select bno, bwriter, btitle, bcount, bdate, " +
@@ -52,6 +53,7 @@ public class Board {
 			pstmt.setInt(1, startRow);
 	        pstmt.setInt(2, endRow);
 			ResultSet rs = pstmt.executeQuery();
+			// 조회된 게시물 목록 출력
 			while(rs.next()) {		
 				Board board = new Board(conn, member);
 				board.setBno(rs.getInt("bno"));
@@ -89,15 +91,15 @@ public class Board {
 	                list(currentPage - 1); 	// 이전 페이지
 	            } else {
 	                System.out.println("이전 페이지가 없습니다.");
-	                list(currentPage); 		// 현재 페이지 다시 표시
+	                list(currentPage); 		// 현재 페이지 표시
 	            }
 	            break;
 	        case 2:
-	            if (currentPage * page_size < getTotalCount()) { // 총 게시물 수를 반환하는 메소드
+	            if (currentPage * page_size < getTotalCount()) { // 총 게시물 수를 반환
 	                list(currentPage + 1); 	// 다음 페이지
 	            } else {
 	                System.out.println("다음 페이지가 없습니다.");
-	                list(currentPage); 		// 현재 페이지 다시 표시
+	                list(currentPage); 		// 현재 페이지 표시
 	            }
 	            break;
 	        case 3:
@@ -124,7 +126,7 @@ public class Board {
 	    }
 	}
 	
-	// 총 게시물 수를 반환하는 메소드
+	// 총 게시물 수를 반환
 	public int getTotalCount() {
 	    int totalCount = 0;
 	    try {
@@ -142,7 +144,7 @@ public class Board {
 	    return totalCount;
 	}
 
-	// 총 페이지 수를 반환하는 메소드
+	// 총 페이지 수를 반환
 	public int getTotalPageCount() {
 		int page_size = 10; //한 페이지에 출력할 게시물 수
 	    return (int) Math.ceil((double) getTotalCount() / page_size);
@@ -177,7 +179,7 @@ public class Board {
 	
 	//게시물 생성
 	public void create() {
-		// 입력 받기
+		// 게시물 정보 입력 받기
 		Board board = new Board(conn, member);
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("새 게시물 입력");
@@ -187,9 +189,11 @@ public class Board {
 		board.setBcontent(scanner.nextLine());
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
+		
         // 로그인된 사용자의 mid를 작성자로 설정
         String writer = member.getMid();
-		// 보조메뉴 출력
+		
+        // 보조메뉴 출력(게시물 생성 확인 문구)
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("게시물 생성: 1.확인 | 2.취소");
 		System.out.print("메뉴선택: ");
@@ -251,6 +255,7 @@ public class Board {
 		            board.increseBcount(); 		// 조회수 증가
 		            updateBoardCount(board); 	// 조회수 업데이트
 					
+		            //게시물 상세정보
 					System.out.println("------------------------------------------------------");
 					System.out.println("번호: " + board.getBno());
 					System.out.println("제목: " + board.getBtitle());
@@ -313,9 +318,10 @@ public class Board {
 	
 	//게시물 수정
 	public void update(Board board) {
+		//비밀번호 확인
 		System.out.print("비밀번호를 입력해주세요: ");
 		String inputMpassword = scanner.nextLine();
-		//수정 내용
+		//비밀번호가 맞다면 게시물 수정 내용 출력
 		if(inputMpassword.equals(member.getMpassword())) {
 			System.out.println("-------------------------------------------------------------------");
 			System.out.println("수정 내용 입력");
@@ -325,6 +331,7 @@ public class Board {
 			board.setBcontent(scanner.nextLine());
 			System.out.println();
 			System.out.println("-------------------------------------------------------------------");
+			
 			//선택메뉴 출력
 			System.out.println("-------------------------------------------------------------------");
 			System.out.println("수정메뉴: 1.수정확인 | 2.수정취소");
@@ -364,10 +371,13 @@ public class Board {
 		System.out.println("게시물 삭제");
 		System.out.println("삭제할 게시물 번호: ");
 		int bno = Integer.parseInt(scanner.nextLine());
+		
 	    // 현재 로그인한 사용자의 아이디
 	    String currentUserId = member.getMid();
+	    
 	    // 게시물의 작성자인지 조회
 	    String writer = null;
+	    
 	    try {
 	        String selectSql = "SELECT bwriter FROM boardtable WHERE bno=?";
 	        PreparedStatement selectPstmt = conn.prepareStatement(selectSql);
@@ -389,7 +399,7 @@ public class Board {
 	        return;
 	    }
 
-	    // 권한 체크
+	    //삭제 권한 체크
 	    if (!currentUserId.equals("admin") && !currentUserId.equals(writer)) {
 	        System.out.println("삭제 권한이 없습니다. 작성자 본인 또는 관리자만 삭제할 수 있습니다.");
 	        return;
@@ -413,9 +423,11 @@ public class Board {
 				pstmt.close();
 				 // 삭제 결과 출력
 	            if (deleteResult > 0) {
+	            	//삭제할 게시물이 있을 경우
 	                System.out.println("게시물이 성공적으로 삭제되었습니다.");
 	                mainMenu();
 	            } else {
+	            	//삭제할 게시물이 없을 경우
 	                System.out.println("해당 번호의 게시물이 존재하지 않습니다.");
 	                mainMenu();
 	            }

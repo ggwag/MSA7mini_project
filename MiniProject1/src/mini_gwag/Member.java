@@ -25,7 +25,8 @@ public class Member {
 	public Member(Connection conn) {
         this.conn = conn;
     }
-	//메뉴화면
+	
+	//메뉴 화면
 	public void memberMenu() {
 		while(!isLoggedIn) {
 			System.out.println("-----------------------------------------------------------------------");
@@ -46,7 +47,7 @@ public class Member {
 	}
 	//게시판 -> 멤버 회원가입
 	public void signup() {
-		//정보 입력 받기
+		//회원의 정보 입력 받기
 		System.out.println("====================  회원가입  =====================");
 		//사용자가 입력한 아이디가 db에 존재하는지 먼저 확인 => 중복된 아이디를 가질 수 없음
 		String inputMid;
@@ -62,7 +63,7 @@ public class Member {
 	            try (ResultSet rs = checkIdPstmt.executeQuery()) {
 	                if (rs.next()) {
 	                    isExistingAccount = true;
-	                    // 아이디가 이미 존재하는 경우 활성화 상태를 확인
+	                    // 아이디가 이미 존재하는 경우 계정 활성화 상태를 확인
 	                    String checkStatusSql = "SELECT menabled FROM membertable WHERE mid = ?";
 	                    try (PreparedStatement checkStatusPstmt = conn.prepareStatement(checkStatusSql)) {
 	                        checkStatusPstmt.setString(1, inputMid);
@@ -102,7 +103,7 @@ public class Member {
 		
 		// 기본 사용자 권한 설정
 	    if (this.getMrole() == null) {
-	        this.setMrole("ROLE USER");  // mrole이 null일 경우 "ROLE USER"로 설정
+	        this.setMrole("ROLE USER");  // mrole이 null일 경우 기본값인 "ROLE USER"로 설정
 	    }
 		
 		System.out.println("======================================================");
@@ -128,7 +129,7 @@ public class Member {
 				
 				pstmt.executeUpdate();
 				System.out.println("회원가입 성공.");
-				//다시 멤버메뉴화면으로 돌아가기
+				//다시 메뉴화면으로 돌아가기
 				memberMenu();
 				pstmt.close();
 			} catch (Exception e) {
@@ -136,7 +137,7 @@ public class Member {
 			}
 		} else {
 			System.out.println("회원가입이 취소되었습니다.");
-			//다시 멤버메뉴화면으로 돌아가기
+			//다시 메뉴화면으로 돌아가기
 			memberMenu();
 		}
 	}
@@ -150,18 +151,17 @@ public class Member {
         
 		try {
 			String sql = "SELECT mid, mrole FROM membertable WHERE mid=? AND mpassword=? AND menabled = 1";
-			//PreparedStatement 얻기 및 값 지정
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 	        pstmt.setString(1, this.mid);  			// 아이디 설정
 	        pstmt.setString(2, this.mpassword);  	// 비밀번호 설정
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {						
-				//멤버 계정이 있을 경우
+				//멤버 계정이 있을 경우 로그인 성공
 				System.out.println("로그인 성공: " + rs.getString("mid"));
 				isLoggedIn = true;  				// 로그인 성공시 상태 업데이트
 				
-				// 로그인한 사용자의 mrole 확인
+				// 로그인한 사용자의 mrole(권한) 확인
 	            String role = rs.getString("mrole");
 	            if ("ROLE ADMIN".equals(role)) {
 	            	//로그인 계정이 관리자인 경우
@@ -178,7 +178,7 @@ public class Member {
 	            Board board = new Board(conn, this);
 	            board.mainMenu();
 			} else {                           
-				//계정이 없거나 아이디, 비밀번호가 틀릴 경우
+				//계정이 없거나 아이디, 비밀번호가 틀릴 경우 = 로그인 실패
 				System.out.println("로그인 실패: 잘못된 아이디 또는 비밀번호 입니다.");
 				this.isLoggedIn = false;	// 로그인 실패시 상태 업데이트
 				memberMenu();
@@ -222,6 +222,7 @@ public class Member {
 	    }
 	}
 	
+	//로그아웃
 	public void signout() {
 	    boolean logUpdated = false;  // 로그아웃 업데이트 여부 확인
 	    try {
@@ -336,7 +337,7 @@ public class Member {
         System.out.print("새 주소: ");
         String newAddress = scanner.nextLine();
 
-        // DB 업데이트
+        // DB에 수정내용 업데이트
         try {
             String updateSql = "UPDATE membertable SET mphone=?, maddress=? WHERE mid=?";
             try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
@@ -355,15 +356,15 @@ public class Member {
     }
     
     public void updateMpassword() {
-    	// 현재 비밀번호 확인
-        System.out.print("현재 비밀번호를 입력해주세요: ");
-        String currentPassword = scanner.nextLine();
 
         // 현재 비밀번호가 맞는지 확인
+    	System.out.print("현재 비밀번호를 입력해주세요: ");
+    	String currentPassword = scanner.nextLine();
         if (!currentPassword.equals(this.mpassword)) {
             System.out.println("현재 비밀번호가 틀렸습니다. 변경을 취소합니다.");
             return; // 비밀번호가 틀린 경우 메소드 종료
         }
+        
         // 비밀번호 변경
         System.out.print("새 비밀번호를 입력해주세요: ");
         String newPassword = scanner.nextLine();
@@ -378,10 +379,10 @@ public class Member {
                     pstmt.setString(2, this.mid);
                     pstmt.executeUpdate();
                     System.out.println("비밀번호가 변경되었습니다. 다시 로그인 해주세요.");
-                    this.mpassword = newPassword;  // 비밀번호 업데이트
+                    this.mpassword = newPassword; 	// 비밀번호 업데이트
                     // 로그아웃 후 회원 메뉴로 돌아가기
-                    signout();  		// 로그아웃 메소드 호출
-                    memberMenu();      	// 회원 메뉴로 돌아가기
+                    signout();  					// 로그아웃 메소드 호출
+                    memberMenu();      				// 회원 메뉴로 돌아가기
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -389,7 +390,7 @@ public class Member {
             }
         } else {
             System.out.println("비밀번호가 일치하지 않습니다. 다시 시도해주세요.");
-            updateMpassword();  // 비밀번호 변경 재시도
+            updateMpassword();  					// 비밀번호 변경 재시도
         }
     }
     
@@ -441,7 +442,7 @@ public class Member {
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {                        
 			    // 아이디가 있는 경우
-			    System.out.println("아이디 : " + rs.getString("mid"));
+			    System.out.println("아이디 발견 : " + rs.getString("mid"));
 			} else {                           
 			    // 아이디가 없는 경우
 			    System.out.println("아이디를 찾을 수 없습니다.");
@@ -472,7 +473,7 @@ public class Member {
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()) {                        
                 // 비밀번호가 있는 경우
-                System.out.println("찾은 비밀번호: " + rs.getString("mpassword"));
+                System.out.println("찾은 비밀번호 : " + rs.getString("mpassword"));
             } else {                           
                 // 비밀번호를 찾지 못한 경우
                 System.out.println("비밀번호를 찾을 수 없습니다.");
