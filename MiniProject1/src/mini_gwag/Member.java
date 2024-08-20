@@ -296,36 +296,37 @@ public class Member {
     	 return mid != null && !mid.trim().isEmpty();
     }
     
-    // 회원정보 수정
+ // 회원정보 수정
     public void updateMember() {
-        System.out.print("비밀번호를 입력해주세요: ");
-        String inputPassword = scanner.nextLine();
+        while (true) {
+            System.out.print("비밀번호를 입력해주세요: ");
+            String inputPassword = scanner.nextLine();
 
-        // 비밀번호가 맞을 경우, 정보 수정
-        if (inputPassword.equals(this.mpassword)) {
-            System.out.println("수정할 정보를 입력하세요.");
-            System.out.println("메뉴: 1.개인정보 수정 |  2.비밀번호 변경  |  3.돌아가기  ");
-            System.out.print("메뉴선택: ");
-			String menuNo = scanner.nextLine();
-			System.out.println();
-			switch(menuNo) {
-				case "1" : 
-					updateUser();			//회원정보 수정
-					break;
-				case "2" : 
-					updateMpassword();		//비밀번호 변경
-					break;
-				
-				case "3" : 
-					memberMenu();			//돌아가기
-					break;
-				default  :
-					System.out.println("올바른 접근이 아닙니다.");
-					updateMember();
-					break;
-			}
-        } else {
-            System.out.println("비밀번호가 틀렸습니다. 잘못된 접근입니다.");
+            // 비밀번호가 맞을 경우, 정보 수정
+            if (inputPassword.equals(this.mpassword)) {
+                System.out.println("수정할 정보를 입력하세요.");
+                System.out.println("메뉴: 1. 개인정보 수정 | 2. 비밀번호 변경 | 3. 돌아가기");
+                System.out.print("메뉴선택: ");
+                String menuNo = scanner.nextLine();
+                System.out.println();
+
+                switch (menuNo) {
+                    case "1":
+                        updateUser();            // 회원정보 수정
+                        break;
+                    case "2":
+                        updateMpassword();       // 비밀번호 변경
+                        break;
+                    case "3":
+                    	//돌아가기
+                        return;                  // 메서드 종료
+                    default:
+                        System.out.println("올바른 접근이 아닙니다.");
+                        break; // 잘못된 접근일 경우 루프 계속
+                }
+            } else {
+                System.out.println("비밀번호가 틀렸습니다. 다시 시도해주세요.");
+            }
         }
     }
     

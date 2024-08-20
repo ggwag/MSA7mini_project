@@ -39,7 +39,6 @@ public class Board {
 		System.out.println("-----------------------------------------------------------------------");
 		System.out.println("[게시물번호]       [작성자]         [제목]             [조회수]          [작성날짜]");
 		System.out.println("-----------------------------------------------------------------------");
-
 		//boardtable에서 게시물 정보를 페이징처리해서 가져오기
 		try {
 			// 게시물 번호를 기준으로 내림차순 정렬 후 페이지 번호에 맞는 게시물 조회
@@ -76,6 +75,7 @@ public class Board {
 		}
 	    // 페이지 이동 메뉴
 	    System.out.println("-----------------------------------------------------------------------");
+	    System.out.println("현재 페이지: " + currentPage + " | 총 페이지 수: " + getTotalPageCount());
 	    System.out.println("1. 이전 페이지");
 	    System.out.println("2. 다음 페이지");
 	    System.out.println("3. 특정 페이지 이동");
@@ -152,26 +152,33 @@ public class Board {
 	
 	// 게시물 메인메뉴 화면
 	public void mainMenu() {
-		System.out.println("---------------------------------------------------------------------------------------------");
-		System.out.println("메뉴: 1.게시물 생성 |  2.게시물 목록  |  3.게시물 삭제 |  4.종료   | 5.로그아웃  |  6.개인정보수정   |   7.회원탈퇴  ");
-		System.out.print("메뉴선택: ");
-		String menuNo = scanner.nextLine();
-		System.out.println();
-		System.out.println("---------------------------------------------------------------------------------------------");
-		System.out.println();
-		
-		switch(menuNo) {
-			case "1" -> create();				//게시물 생성
-			case "2" -> showList();				//게시물 목록
-			case "3" -> delete();				//게시물 삭제
-			case "4" -> exit();					//게시판 종료
-			case "5" -> member.signout(); 		//회원 로그아웃
-			case "6" -> member.updateMember();	//회원정보 수정
-			case "7" -> member.withdraw();		//회원탈퇴
-			default -> System.out.println("잘못된 입력입니다.");
-		}
-	}	
-	
+		while (true) { // 메인 메뉴가 계속 반복되어야 함
+			System.out.println("---------------------------------------------------------------------------------------------");
+			System.out.println("메뉴: 1.게시물 생성 |  2.게시물 목록  |  3.게시물 삭제 |  4.종료   | 5.로그아웃  |  6.개인정보수정   |   7.회원탈퇴  ");
+			System.out.print("메뉴선택: ");
+			String menuNo = scanner.nextLine();
+			System.out.println();
+			System.out.println("---------------------------------------------------------------------------------------------");
+			System.out.println();
+			
+			
+			
+			switch(menuNo) {
+				case "1" -> create();				//게시물 생성
+				case "2" -> showList();				//게시물 목록
+				case "3" -> delete();				//게시물 삭제
+				case "4" -> exit();					//게시판 종료
+				case "5" -> member.signout(); 		//회원 로그아웃
+				case "6" -> member.updateMember();	//회원정보 수정
+				case "7" -> member.withdraw();		//회원탈퇴
+				case "8" -> showMemberList();       // 회원 목록 보기 (관리자 전용)
+				default -> {
+					System.out.println("잘못된 입력입니다.");
+					mainMenu();
+				}
+			}
+		}	
+	}
 	public Board(Connection conn, Member member) {
 		this.conn = conn;
         this.member = member;
@@ -277,43 +284,49 @@ public class Board {
 					System.out.println("------------------------------------------------------");
 					System.out.println();
 				
-				if (menuNo.equals("1")) {
-	                // 게시물 수정 권한 확인
-	                if (currentUserId.equals(board.getBwriter())) {
-	                    // 게시물 수정
-	                    update(board);
-	                } else {
-	                    System.out.println("수정 권한이 없습니다. 작성자만 수정할 수 있습니다.");
+				 switch (menuNo) {
+	                case "1":
+	                    // 게시물 수정 권한 확인
+	                    if (currentUserId.equals(board.getBwriter())) {
+	                        // 게시물 수정
+	                        update(board);
+	                        mainMenu();  // 수정 후 메인 메뉴로 돌아감
+	                    } else {
+	                        System.out.println("수정 권한이 없습니다. 작성자만 수정할 수 있습니다.");
+	                    }
+	                    break;
+	                case "2":
+	                    // 게시물 삭제 권한 확인
+	                    if (currentUserId.equals(board.getBwriter())) {
+	                        // 게시물 삭제
+	                        delete();
+	                        mainMenu();  // 삭제 후 메인 메뉴로 돌아감
+	                    } else {
+	                        System.out.println("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
+	                    }
+	                    break;
+	                case "3":
+	                    // 메뉴화면으로 돌아가기
 	                    mainMenu();
-	                }
-	            } else if (menuNo.equals("2")) {
-	                // 게시물 삭제 권한 확인
-	                if (currentUserId.equals(board.getBwriter())) {
-	                    // 게시물 삭제
-	                    delete();
-	                } else {
-	                    System.out.println("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
-	                    mainMenu();
-	                }
-	            } else if (menuNo.equals("3")) {
-	                // 메뉴화면으로 돌아가기
-	                mainMenu();
-	            } else {
-	                System.out.println("잘못된 접근입니다. 프로그램을 종료합니다.");
-	                exit();
+	                    break;
+	                default:
+	                    System.out.println("잘못된 접근입니다.");
+	                    mainMenu();  // 잘못된 입력이 발생하면 메인 메뉴로 돌아감
+	                    break;
 	            }
-			} else {
-				System.out.println("게시물이 존재하지 않습니다.");
-				System.out.println("------------------------------------------------------");
-				mainMenu(); 
-			}
-			rs.close();
-			pstmt.close();
-		} catch (Exception e) {
-			System.out.println("데이터를 읽는 중 오류가 발생했습니다.");
-			e.printStackTrace();
-			exit();
-		}
+	        } else {
+	            System.out.println("게시물이 존재하지 않습니다.");
+	            System.out.println("------------------------------------------------------");
+	            mainMenu(); 
+	        }
+	        rs.close();
+	        pstmt.close();
+	    } catch (Exception e) {
+	        System.out.println("데이터를 읽는 중 오류가 발생했습니다.");
+	        e.printStackTrace();
+	        exit();
+	    }
+		mainMenu();  // mainMenu() 호출을 반복하거나, 오류 발생 시 종료됨
 	}
 	
 	//게시물 수정
@@ -388,7 +401,7 @@ public class Board {
 	            writer = rs.getString("bwriter");
 	        } else {
 	            System.out.println("해당 번호의 게시물이 존재하지 않습니다.");
-	            return;
+	            mainMenu();
 	        }
 	        rs.close();
 	        selectPstmt.close();
@@ -396,13 +409,13 @@ public class Board {
 	    } catch (SQLException e) {
 	        e.printStackTrace();
 	        System.out.println("게시물 조회 중 오류가 발생했습니다.");
-	        return;
+	        mainMenu();
 	    }
 
 	    //삭제 권한 체크
 	    if (!currentUserId.equals("admin") && !currentUserId.equals(writer)) {
 	        System.out.println("삭제 권한이 없습니다. 작성자 본인 또는 관리자만 삭제할 수 있습니다.");
-	        return;
+	        mainMenu();
 	    }
 	    
 		System.out.println("-------------------------------------------------------------------");
@@ -474,4 +487,59 @@ public class Board {
         this.bcount++;
     }
     
+    //관리자용 회원목록 보기
+    public void showMemberList() {
+    	if ("ROLE ADMIN".equals(member.getMrole())) { // 관리자인지 확인
+            int pageSize = 10;  // 한 페이지에 보여줄 회원 수
+            int currentPage = 1; // 현재 페이지 초기값
+
+            while (true) {
+                System.out.println("============= 회원 목록 =============");
+                System.out.println( "(페이지 " + currentPage + ")");
+                try {
+                    String sql = "SELECT mid, mname, mphone, maddress, msex FROM membertable WHERE menabled = 1 LIMIT ? OFFSET ?";
+                    PreparedStatement pstmt = conn.prepareStatement(sql);
+                    pstmt.setInt(1, pageSize); 
+                    pstmt.setInt(2, (currentPage - 1) * pageSize); 
+                    ResultSet rs = pstmt.executeQuery();
+
+                    while (rs.next()) {
+                        String mid = rs.getString("mid");
+                        String mname = rs.getString("mname");
+                        String mphone = rs.getString("mphone");
+                        String maddress = rs.getString("maddress");
+                        String msex = rs.getString("msex");
+
+                        System.out.println("아이디: " + mid + ", 이름: " + mname + ", 전화번호: " + mphone + ", 주소: " + maddress + ", 성별: " + msex);
+                    }
+                    rs.close();
+                    pstmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("===========================================");
+
+                // 다음 페이지, 이전 페이지 또는 종료 선택
+                System.out.println("1. 이전 페이지 | 2. 다음 페이지 | 3. 종료");
+                System.out.print("선택: ");
+                String choice = scanner.nextLine();
+
+                if ("1".equals(choice)) {
+                    if (currentPage > 1) {
+                        currentPage--;
+                    } else {
+                        System.out.println("이전 페이지가 없습니다.");
+                    }
+                } else if ("2".equals(choice)) {
+                    currentPage++;
+                } else if ("3".equals(choice)) {
+                    break;
+                } else {
+                    System.out.println("잘못된 입력입니다.");
+                }
+            }
+        } else {
+            System.out.println("관리자만 접근할 수 있습니다.");
+        }
+    }
 }
