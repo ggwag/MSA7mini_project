@@ -48,7 +48,7 @@ public class Board {
 	}
 	
 	public void create() {
-		//입력 받기
+		// 입력 받기
 		Board board = new Board(conn, member);
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("새 게시물 입력");
@@ -60,7 +60,7 @@ public class Board {
 		System.out.println("-------------------------------------------------------------------");
         // 로그인된 사용자의 mid를 작성자로 설정
         String writer = member.getMid();
-		//보조메뉴 출력
+		// 보조메뉴 출력
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("게시물 생성: 1.확인 | 2.취소");
 		System.out.print("메뉴선택: ");
@@ -68,7 +68,7 @@ public class Board {
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
 		if(menuNo.equals("1")) {
-			//boardtable 테이블에 게시물 정보 저장
+			// boardtable 테이블에 게시물 정보 저장
 			try {
 				String sql =
 					"INSERT INTO boardtable (bno, btitle, bcontent, bwriter, bdate) " +
@@ -78,28 +78,28 @@ public class Board {
 				pstmt.setString(2, board.getBcontent());
 				pstmt.setString(3, writer);
 				pstmt.executeUpdate();
-				System.out.println("------ 게시물이 등록되었습니다. ------");
+				System.out.println("----------------- 게시물이 등록되었습니다. ------------------");
 				pstmt.close();
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.out.println("------ 게시물 생성 중 오류가 발생했습니다. ------");
+				System.out.println("----------------- 게시물 생성 중 오류가 발생했습니다. -------------------");
 				exit();
 			}
 		}
-		//게시물 목록으로 돌아가기
+		// 게시물 목록으로 돌아가기
 		mainMenu();
 	}
 	
-	//게시물 내용 읽기
+	// 게시물 내용 읽기
 	public void read() {
-		//입력 받기
+		//읽을 게시물의 번호를 입력 받기
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("게시물 읽기");
 		System.out.print("게시물 번호: "); 	
 		int bno = Integer.parseInt(scanner.nextLine());
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
-		//boardtable 테이블에서 해당 게시물을 가져와 출력
+		// boardtable 테이블에서 해당 게시물을 가져와 출력
 		try {
 			String sql = "" +
 				"SELECT bno, btitle, bcontent, bwriter, bdate, bcount " +
@@ -126,6 +126,10 @@ public class Board {
 					System.out.println("작성날짜: " + board.getBdate());
 					System.out.println("조회수: " + board.getBcount());
 					System.out.println("------------------------------------------------------");
+					
+					// 현재 로그인한 사용자의 아이디
+		            String currentUserId = member.getMid();
+					
 					//보조메뉴 출력
 					System.out.println("------------------------------------------------------");
 					System.out.println("보조메뉴: 1.수정 | 2.삭제 | 3.돌아가기");
@@ -135,19 +139,35 @@ public class Board {
 					System.out.println("------------------------------------------------------");
 					System.out.println();
 				
-				if(menuNo.equals("1")) {
-					//게시물 수정
-					update(board);
-				} else if(menuNo.equals("2")) {
-					//게시물 삭제
-					delete();
-				} else if(menuNo.equals("3")) {
-					//메뉴화면으로 돌아가기
-					mainMenu();
-				} else {
-					System.out.println("잘못된 접근입니다. 프로그램을 종료합니다.");
-					exit();
-				}
+				if (menuNo.equals("1")) {
+	                // 게시물 수정 권한 확인
+	                if (currentUserId.equals(board.getBwriter())) {
+	                    // 게시물 수정
+	                    update(board);
+	                } else {
+	                    System.out.println("수정 권한이 없습니다. 작성자만 수정할 수 있습니다.");
+	                    mainMenu();
+	                }
+	            } else if (menuNo.equals("2")) {
+	                // 게시물 삭제 권한 확인
+	                if (currentUserId.equals(board.getBwriter())) {
+	                    // 게시물 삭제
+	                    delete();
+	                } else {
+	                    System.out.println("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
+	                    mainMenu();
+	                }
+	            } else if (menuNo.equals("3")) {
+	                // 메뉴화면으로 돌아가기
+	                mainMenu();
+	            } else {
+	                System.out.println("잘못된 접근입니다. 프로그램을 종료합니다.");
+	                exit();
+	            }
+			} else {
+				System.out.println("게시물이 존재하지 않습니다.");
+				System.out.println("------------------------------------------------------");
+				mainMenu(); 
 			}
 			rs.close();
 			pstmt.close();
@@ -211,13 +231,13 @@ public class Board {
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("게시물을 삭제하시겠습니까?: 1.확인 | 2.취소");
 		System.out.print("메뉴선택: ");
+		String menuNo = scanner.nextLine();
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
-		String menuNo = scanner.nextLine();
 		//삭제를 확인한 경우(1 입력했을 경우)
 		if(menuNo.equals("1")) {
 			try {
-				//delete쿼리문 실행
+				//삭제할 게시물이 있는지 확인하고 삭제
 				String sql = "DELETE FROM boardtable WHERE bno=?";
 				PreparedStatement pstmt = conn.prepareStatement(sql);
 				pstmt.setInt(1, bno);
