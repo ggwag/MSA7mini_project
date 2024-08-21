@@ -35,7 +35,7 @@ public class Member {
 			System.out.println("메뉴: 1.회원가입 | 2.로그인 | 3.아이디 찾기 | 4.비밀번호 찾기  | 5.종료");
 			System.out.print("메뉴선택: ");
 			String menuNo = scanner.nextLine();
-			System.out.println();
+			System.out.println("-----------------------------------------------------------------------");
 			switch(menuNo) {
 				case "1" -> signup();		//회원가입
 				case "2" -> signin();		//로그인
@@ -163,6 +163,9 @@ public class Member {
 				
 				// 로그인한 사용자의 mrole(권한) 확인
 	            String role = rs.getString("mrole");
+	            // 로그인 후 member 객체에 역할 저장
+	            this.mrole = role; // mrole 필드에 역할 설정
+	            
 	            if ("ROLE ADMIN".equals(role)) {
 	            	//로그인 계정이 관리자인 경우
 	                System.out.println("==== 알림 ==== : [관리자] 계정으로 로그인 되었습니다.");
@@ -255,7 +258,12 @@ public class Member {
 	        }
 
 	        this.isLoggedIn = false; 	// 로그아웃 상태로 변경
-
+	        this.mid = null;           // 아이디 초기화
+	        this.mpassword = null;     // 비밀번호 초기화
+	        this.mrole = null;         // 권한 초기화
+	        System.out.println("로그아웃이 완료되었습니다.");
+	        memberMenu();
+	        
 	    } catch (SQLException e) {
 	        e.printStackTrace();
 	    }
@@ -497,5 +505,14 @@ public class Member {
 		System.out.println("=============================  프로그램 종료 ==============================");
 		System.exit(0);
 	}
+    
+    //회원목록을 게시판에 나타내위해 관리자인지 확인
+    public String getMrole() {
+        return this.mrole;
+    }
+    
+    public boolean isAdmin() {
+        return "ROLE ADMIN".equals(this.getMrole());
+    }
     
 }

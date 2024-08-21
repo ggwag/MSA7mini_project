@@ -152,9 +152,15 @@ public class Board {
 	
 	// 게시물 메인메뉴 화면
 	public void mainMenu() {
-		while (true) { // 메인 메뉴가 계속 반복되어야 함
+		while (true) { 
+			// 메인 메뉴가 반복되어야 함
 			System.out.println("---------------------------------------------------------------------------------------------");
 			System.out.println("메뉴: 1.게시물 생성 |  2.게시물 목록  |  3.게시물 삭제 |  4.종료   | 5.로그아웃  |  6.개인정보수정   |   7.회원탈퇴  ");
+			// 관리자인 경우에만 '8. 회원 목록' 옵션을 추가
+			if ("ROLE ADMIN".equals(member.getMrole())) {
+				System.out.println("       8. 회원 목록 보기");
+			}
+			
 			System.out.print("메뉴선택: ");
 			String menuNo = scanner.nextLine();
 			System.out.println();
@@ -171,10 +177,15 @@ public class Board {
 				case "5" -> member.signout(); 		//회원 로그아웃
 				case "6" -> member.updateMember();	//회원정보 수정
 				case "7" -> member.withdraw();		//회원탈퇴
-				case "8" -> showMemberList();       // 회원 목록 보기 (관리자 전용)
+				case "8" -> {						//회원 목록 보기 (관리자 전용)
+					if("ROLE ADMIN".equals(member.getMrole())) {
+						showMemberList();
+					} else {
+						System.out.println("잘못된 접근입니다.");
+					}
+				}       
 				default -> {
 					System.out.println("잘못된 입력입니다.");
-					mainMenu();
 				}
 			}
 		}	
@@ -489,28 +500,47 @@ public class Board {
     
     //관리자용 회원목록 보기
     public void showMemberList() {
-    	if ("ROLE ADMIN".equals(member.getMrole())) { // 관리자인지 확인
-            int pageSize = 10;  // 한 페이지에 보여줄 회원 수
-            int currentPage = 1; // 현재 페이지 초기값
+    	if ("ROLE ADMIN".equals(member.getMrole())) { 			// 관리자인지 확인
+            int pageSize = 5;  									// 한 페이지에 보여줄 회원 수
+            int currentPage = 1; 								// 현재 페이지 초기값
 
             while (true) {
                 System.out.println("============= 회원 목록 =============");
-                System.out.println( "(페이지 " + currentPage + ")");
+                System.out.println( "페이지[ " + currentPage + " ]");
                 try {
-                    String sql = "SELECT mid, mname, mphone, maddress, msex FROM membertable WHERE menabled = 1 LIMIT ? OFFSET ?";
+	            	String sql = "" +
+                        "SELECT * FROM (" +
+                        "  SELECT mid, mname, mphone, maddress, msex, " +
+                        "  ROW_NUMBER() OVER (ORDER BY mid ASC) AS rnum " +
+                        "  FROM membertable " +
+                        ") WHERE rnum BETWEEN ? AND ?";
+                	
                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                    pstmt.setInt(1, pageSize); 
-                    pstmt.setInt(2, (currentPage - 1) * pageSize); 
+                    pstmt.setInt(1, (currentPage - 1) * pageSize + 1); // 시작 행 번호
+                    pstmt.setInt(2, currentPage * pageSize); // 종료 행 번호
                     ResultSet rs = pstmt.executeQuery();
 
+                    // 결과가 없을 경우 체크
+                    boolean hasResult = false;
+                    
                     while (rs.next()) {
+                    	hasResult = true;
                         String mid = rs.getString("mid");
                         String mname = rs.getString("mname");
                         String mphone = rs.getString("mphone");
                         String maddress = rs.getString("maddress");
                         String msex = rs.getString("msex");
-
-                        System.out.println("아이디: " + mid + ", 이름: " + mname + ", 전화번호: " + mphone + ", 주소: " + maddress + ", 성별: " + msex);
+                        
+                        System.out.println("아이디: " + mid);
+                        System.out.println("이름: " + mname);
+                        System.out.println("전화번호: " + mphone);
+                        System.out.println("주소: " + maddress);
+                        System.out.println("성별: " + msex);
+                        System.out.println("---------------------------------");
+                        
+                    }
+                    if (!hasResult) {
+                        System.out.println("더 이상 회원 목록이 없습니다.");
                     }
                     rs.close();
                     pstmt.close();
@@ -524,22 +554,32 @@ public class Board {
                 System.out.print("선택: ");
                 String choice = scanner.nextLine();
 
-                if ("1".equals(choice)) {
+                switch (choice) {
+                case "1":
                     if (currentPage > 1) {
                         currentPage--;
                     } else {
                         System.out.println("이전 페이지가 없습니다.");
                     }
-                } else if ("2".equals(choice)) {
-                    currentPage++;
-                } else if ("3".equals(choice)) {
                     break;
-                } else {
+                case "2":
+                    if (currentPage * pageSize < getTotalPageCount()) {
+                        currentPage++;
+                    } else {
+                        System.out.println("다음 페이지가 없습니다.");
+                    }
+                    break;
+                case "3":
+                    // 종료
+                	exit();
+                    break;
+                default:
                     System.out.println("잘못된 입력입니다.");
+                    break;
                 }
-            }
-        } else {
-            System.out.println("관리자만 접근할 수 있습니다.");
-        }
+          }
+       } else {
+              System.out.println("회원 목록 보기를 사용할 수 있는 권한이 없습니다.");
+         }
     }
 }

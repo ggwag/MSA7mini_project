@@ -9,6 +9,7 @@ import java.util.Scanner;
 
 public class BoardProject {
 	public static void main(String[] args) {
+		
 		Connection conn = null;
 		Member member = null;
 		try {
