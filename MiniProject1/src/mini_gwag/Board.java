@@ -45,7 +45,7 @@ public class Board {
 			String sql = "" +
 					"select * from (" +
 		            "select bno, bwriter, btitle, bcount, bdate, " +
-		            "ROW_NUMBER() OVER (ORDER BY bno DESC) AS rnum " +
+		            "ROW_NUMBER() over (order by bno desc) as rnum " +
 		            "from boardtable " +
 		            ") where rnum between ? and ?";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -130,7 +130,7 @@ public class Board {
 	public int getTotalCount() {
 	    int totalCount = 0;
 	    try {
-	        String sql = "SELECT COUNT(*) FROM boardtable";
+	        String sql = "select count (*) from boardtable";
 	        PreparedStatement pstmt = conn.prepareStatement(sql);
 	        ResultSet rs = pstmt.executeQuery();
 	        if (rs.next()) {
@@ -179,7 +179,7 @@ public class Board {
 				case "7" -> member.withdraw();		//회원탈퇴
 				case "8" -> {						//회원 목록 보기 (관리자 전용)
 					if("ROLE ADMIN".equals(member.getMrole())) {
-						showMemberList();
+						member.showMemberList();
 					} else {
 						System.out.println("잘못된 접근입니다.");
 					}
@@ -222,8 +222,8 @@ public class Board {
 			// boardtable 테이블에 게시물 정보 저장
 			try {
 				String sql =
-					"INSERT INTO boardtable (bno, btitle, bcontent, bwriter, bdate) " +
-					"VALUES (SEQ_BNO.NEXTVAL, ?, ?, ?, sysdate)";
+					"insert into boardtable (bno, btitle, bcontent, bwriter, bdate) " +
+					"values (SEQ_BNO.NEXTVAL, ?, ?, ?, sysdate)";
 				PreparedStatement pstmt = conn.prepareStatement(sql);
 				pstmt.setString(1, board.getBtitle());
 				pstmt.setString(2, board.getBcontent());
@@ -253,9 +253,9 @@ public class Board {
 		// boardtable 테이블에서 해당 게시물을 가져와 출력
 		try {
 			String sql = "" +
-				"SELECT bno, btitle, bcontent, bwriter, bdate, bcount " +
-				"FROM boardtable " +
-				"WHERE bno=?";
+				"select bno, btitle, bcontent, bwriter, bdate, bcount " +
+				"from boardtable " +
+				"where bno=?";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, bno);
 			ResultSet rs = pstmt.executeQuery();
@@ -368,8 +368,8 @@ public class Board {
 				//boardtable 테이블에 게시물 정보 수정
 				try {
 					String sql = "" +
-						"UPDATE boardtable SET btitle=?, bcontent=?, bwriter=? " +
-						"WHERE bno=?";
+						"update boardtable set btitle=?, bcontent=?, bwriter=? " +
+						"where bno=?";
 					PreparedStatement pstmt = conn.prepareStatement(sql);
 					pstmt.setString(1, board.getBtitle());
 					pstmt.setString(2, board.getBcontent());
@@ -397,13 +397,14 @@ public class Board {
 		int bno = Integer.parseInt(scanner.nextLine());
 		
 	    // 현재 로그인한 사용자의 아이디
-	    String currentUserId = member.getMid();
-	    
+		String currentUserMid = member.getMid();
+	    String currentUserMpassword = member.getMpassword(); // 현재 로그인한 사용자의 비밀번호
+	    boolean isAdmin = "ROLE ADMIN".equals(member.getMrole());
 	    // 게시물의 작성자인지 조회
 	    String writer = null;
 	    
 	    try {
-	        String selectSql = "SELECT bwriter FROM boardtable WHERE bno=?";
+	        String selectSql = "select bwriter from boardtable where bno=?";
 	        PreparedStatement selectPstmt = conn.prepareStatement(selectSql);
 	        selectPstmt.setInt(1, bno);
 	        ResultSet rs = selectPstmt.executeQuery();
@@ -417,51 +418,58 @@ public class Board {
 	        rs.close();
 	        selectPstmt.close();
 	        
+	        // 삭제권한 체크
+	        if (!isAdmin && !currentUserMid.equals(writer)) {
+	            System.out.println("삭제 권한이 없습니다. 작성자 본인 또는 관리자만 삭제할 수 있습니다.");
+	            return;
+	        }
+	        
+	        // 비밀번호 확인 (관리자는 생략)
+	        if (!isAdmin) {
+	            System.out.print("비밀번호 입력: ");
+	            String passwordInput = scanner.nextLine();
+	            if (!passwordInput.equals(currentUserMpassword)) {
+	                System.out.println("비밀번호가 올바르지 않습니다. 게시물 삭제 권한이 없습니다.");
+	                return;
+	            }
+	        }
+	        // 삭제 확인
+	        System.out.println("-------------------------------------------------------------------");
+	        System.out.println("게시물을 삭제하시겠습니까?: 1.확인 | 2.취소");
+	        System.out.print("메뉴선택: ");
+	        String menuNo = scanner.nextLine();
+	        System.out.println("-------------------------------------------------------------------");
+
+	        switch (menuNo) {
+	            case "1": // 게시물 삭제
+	                String deleteSql = "DELETE FROM boardtable WHERE bno=?";
+	                try (PreparedStatement deletePstmt = conn.prepareStatement(deleteSql)) {
+	                    deletePstmt.setInt(1, bno);
+	                    int deleteResult = deletePstmt.executeUpdate();
+
+	                    if (deleteResult > 0) {
+	                        System.out.println("게시물이 성공적으로 삭제되었습니다.");
+	                    } else {
+	                        System.out.println("해당 번호의 게시물이 존재하지 않습니다.");
+	                    }
+	                } catch (SQLException e) {
+	                    e.printStackTrace();
+	                    System.out.println("게시물 삭제 중 오류가 발생했습니다.");
+	                }
+	                break;
+
+	            case "2": // 게시물 삭제 취소
+	                System.out.println("게시물 삭제가 취소되었습니다.");
+	                break;
+
+	            default:
+	                System.out.println("잘못된 입력입니다.");
+	                break;
+	        }
 	    } catch (SQLException e) {
 	        e.printStackTrace();
 	        System.out.println("게시물 조회 중 오류가 발생했습니다.");
-	        mainMenu();
-	    }
-
-	    //삭제 권한 체크
-	    if (!currentUserId.equals("admin") && !currentUserId.equals(writer)) {
-	        System.out.println("삭제 권한이 없습니다. 작성자 본인 또는 관리자만 삭제할 수 있습니다.");
-	        mainMenu();
-	    }
-	    
-		System.out.println("-------------------------------------------------------------------");
-		System.out.println("게시물을 삭제하시겠습니까?: 1.확인 | 2.취소");
-		System.out.print("메뉴선택: ");
-		String menuNo = scanner.nextLine();
-		System.out.println();
-		System.out.println("-------------------------------------------------------------------");
-		
-		//삭제 확인
-		if(menuNo.equals("1")) {
-			try {
-				//삭제할 게시물이 있는지 확인하고 삭제
-				String sql = "DELETE FROM boardtable WHERE bno=?";
-				PreparedStatement pstmt = conn.prepareStatement(sql);
-				pstmt.setInt(1, bno);
-				int deleteResult = pstmt.executeUpdate();
-				pstmt.close();
-				 // 삭제 결과 출력
-	            if (deleteResult > 0) {
-	            	//삭제할 게시물이 있을 경우
-	                System.out.println("게시물이 성공적으로 삭제되었습니다.");
-	                mainMenu();
-	            } else {
-	            	//삭제할 게시물이 없을 경우
-	                System.out.println("해당 번호의 게시물이 존재하지 않습니다.");
-	                mainMenu();
-	            }
-			} catch (Exception e) {
-				e.printStackTrace();
-				exit();
-			}
-		} else {
-	        //삭제를 취소한 경우
-	        System.out.println("게시물 삭제가 취소되었습니다.");
+	    } finally {
 	        mainMenu();
 	    }
 	}
@@ -481,7 +489,7 @@ public class Board {
 	// 게시물 조회수 업데이트 메소드
 	public void updateBoardCount(Board board) {
 	    try {
-	        String sql = "UPDATE boardtable SET bcount=? WHERE bno=?";
+	        String sql = "update boardtable set bcount=? where bno=?";
 	        PreparedStatement pstmt = conn.prepareStatement(sql);
 	        pstmt.setInt(1, board.getBcount()); // 증가된 조회수
 	        pstmt.setInt(2, board.getBno());
@@ -498,88 +506,6 @@ public class Board {
         this.bcount++;
     }
     
-    //관리자용 회원목록 보기
-    public void showMemberList() {
-    	if ("ROLE ADMIN".equals(member.getMrole())) { 			// 관리자인지 확인
-            int pageSize = 5;  									// 한 페이지에 보여줄 회원 수
-            int currentPage = 1; 								// 현재 페이지 초기값
 
-            while (true) {
-                System.out.println("============= 회원 목록 =============");
-                System.out.println( "페이지[ " + currentPage + " ]");
-                try {
-	            	String sql = "" +
-                        "SELECT * FROM (" +
-                        "  SELECT mid, mname, mphone, maddress, msex, " +
-                        "  ROW_NUMBER() OVER (ORDER BY mid ASC) AS rnum " +
-                        "  FROM membertable " +
-                        ") WHERE rnum BETWEEN ? AND ?";
-                	
-                    PreparedStatement pstmt = conn.prepareStatement(sql);
-                    pstmt.setInt(1, (currentPage - 1) * pageSize + 1); // 시작 행 번호
-                    pstmt.setInt(2, currentPage * pageSize); // 종료 행 번호
-                    ResultSet rs = pstmt.executeQuery();
-
-                    // 결과가 없을 경우 체크
-                    boolean hasResult = false;
-                    
-                    while (rs.next()) {
-                    	hasResult = true;
-                        String mid = rs.getString("mid");
-                        String mname = rs.getString("mname");
-                        String mphone = rs.getString("mphone");
-                        String maddress = rs.getString("maddress");
-                        String msex = rs.getString("msex");
-                        
-                        System.out.println("아이디: " + mid);
-                        System.out.println("이름: " + mname);
-                        System.out.println("전화번호: " + mphone);
-                        System.out.println("주소: " + maddress);
-                        System.out.println("성별: " + msex);
-                        System.out.println("---------------------------------");
-                        
-                    }
-                    if (!hasResult) {
-                        System.out.println("더 이상 회원 목록이 없습니다.");
-                    }
-                    rs.close();
-                    pstmt.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("===========================================");
-
-                // 다음 페이지, 이전 페이지 또는 종료 선택
-                System.out.println("1. 이전 페이지 | 2. 다음 페이지 | 3. 종료");
-                System.out.print("선택: ");
-                String choice = scanner.nextLine();
-
-                switch (choice) {
-                case "1":
-                    if (currentPage > 1) {
-                        currentPage--;
-                    } else {
-                        System.out.println("이전 페이지가 없습니다.");
-                    }
-                    break;
-                case "2":
-                    if (currentPage * pageSize < getTotalPageCount()) {
-                        currentPage++;
-                    } else {
-                        System.out.println("다음 페이지가 없습니다.");
-                    }
-                    break;
-                case "3":
-                    // 종료
-                	exit();
-                    break;
-                default:
-                    System.out.println("잘못된 입력입니다.");
-                    break;
-                }
-          }
-       } else {
-              System.out.println("회원 목록 보기를 사용할 수 있는 권한이 없습니다.");
-         }
-    }
+    
 }

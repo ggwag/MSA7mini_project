@@ -22,6 +22,7 @@ public class Member {
 	private String msex;		// 성별
 	private String mrole;		// 사용자 권한(관리자 유무)
 	
+	private Board board;
 	public Member(Connection conn) {
         this.conn = conn;
     }
@@ -55,7 +56,7 @@ public class Member {
 	        System.out.print("아이디: ");
 	        inputMid = scanner.nextLine();
 	        //아이디 중복 확인 코드
-	        String checkIdSql = "SELECT mid FROM membertable WHERE mid = ?";
+	        String checkIdSql = "select mid from membertable where mid = ?";
 	        boolean isExistingAccount = false;
 	        boolean isAccountDisabled = false;
 	        try (PreparedStatement checkIdPstmt = conn.prepareStatement(checkIdSql)) {
@@ -64,7 +65,7 @@ public class Member {
 	                if (rs.next()) {
 	                    isExistingAccount = true;
 	                    // 아이디가 이미 존재하는 경우 계정 활성화 상태를 확인
-	                    String checkStatusSql = "SELECT menabled FROM membertable WHERE mid = ?";
+	                    String checkStatusSql = "select menabled from membertable where mid = ?";
 	                    try (PreparedStatement checkStatusPstmt = conn.prepareStatement(checkStatusSql)) {
 	                        checkStatusPstmt.setString(1, inputMid);
 	                        try (ResultSet statusRs = checkStatusPstmt.executeQuery()) {
@@ -116,8 +117,8 @@ public class Member {
 			//membertable 테이블에 게시물 정보 저장
 			try {
 				String sql = "" +
-					"INSERT INTO membertable (mid, mpassword, mname, mphone, maddress, msex, mrole) " +
-					"VALUES (?, ?, ?, ?, ?, ?, ?)";
+					"insert into membertable (mid, mpassword, mname, mphone, maddress, msex, mrole) " +
+					"values (?, ?, ?, ?, ?, ?, ?)";
 				PreparedStatement pstmt = conn.prepareStatement(sql);
 				pstmt.setString(1, this.getMid());
 				pstmt.setString(2, this.getMpassword());
@@ -150,7 +151,7 @@ public class Member {
         this.mpassword = scanner.nextLine();
         
 		try {
-			String sql = "SELECT mid, mrole FROM membertable WHERE mid=? AND mpassword=? AND menabled = 1";
+			String sql = "select mid, mrole from membertable where mid=? and mpassword=? and menabled = 1";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 	        pstmt.setString(1, this.mid);  			// 아이디 설정
 	        pstmt.setString(2, this.mpassword);  	// 비밀번호 설정
@@ -196,8 +197,8 @@ public class Member {
 	
 	// 로그인 시간 기록
 	public void logLoginTime() throws SQLException {
-	    String logSql = "INSERT INTO LOGRECORD (mid, LOGINTIME, LOGOUTTIME) VALUES (?, systimestamp, null)";
-	    String updateSql = "UPDATE membertable SET MLOGINDATE = systimestamp WHERE mid = ?";
+	    String logSql = "insert into logrecord (mid, logintime, logouttime) values (?, systimestamp, null)";
+	    String updateSql = "update membertable set mlogindate = systimestamp where mid = ?";
 	    
 	    try (PreparedStatement logPstmt = conn.prepareStatement(logSql);
 	         PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
@@ -212,13 +213,13 @@ public class Member {
 
 	// 로그인 시간 출력
 	public void displayLoginTime() throws SQLException {
-	    String getTimeSql = "SELECT LOGINTIME FROM (SELECT LOGINTIME FROM LOGRECORD WHERE MID = ? ORDER BY LOGINTIME DESC) WHERE ROWNUM = 1";
+	    String getTimeSql = "select logintime from (select logintime from logrecord where mid = ? order by logintime desc) where ROWNUM = 1";
 
 	    try (PreparedStatement getTimePstmt = conn.prepareStatement(getTimeSql)) {
 	        getTimePstmt.setString(1, this.mid);
 	        try (ResultSet rs = getTimePstmt.executeQuery()) {
 	            if (rs.next()) {
-	                Timestamp loginTime = rs.getTimestamp("LOGINTIME");
+	                Timestamp loginTime = rs.getTimestamp("logintime");
 	                System.out.println("로그인 성공! 로그인 시간: " + loginTime);
 	            }
 	        }
@@ -230,7 +231,7 @@ public class Member {
 	    boolean logUpdated = false;  // 로그아웃 업데이트 여부 확인
 	    try {
 	        // LOGRECORD 테이블의 로그아웃 시간 업데이트
-	        String logOutSql = "UPDATE LOGRECORD SET LOGOUTTIME = systimestamp WHERE mid = ? AND LOGOUTTIME IS NULL";
+	        String logOutSql = "update logrecord set logouttime = systimestamp where mid = ? and logouttime IS NULL";
 	        try (PreparedStatement pstmt = conn.prepareStatement(logOutSql)) {
 	            pstmt.setString(1, this.mid);
 	            int rowsUpdated = pstmt.executeUpdate();
@@ -240,7 +241,7 @@ public class Member {
 	        }
 
 	        // membertable 테이블의 로그아웃 시간 갱신
-	        String memberTableSql = "UPDATE membertable SET mlogoutdate = sysdate WHERE mid = ?";
+	        String memberTableSql = "update membertable set mlogoutdate = sysdate where mid = ?";
 	        try (PreparedStatement pstmt = conn.prepareStatement(memberTableSql)) {
 	            pstmt.setString(1, this.mid);
 	            int memberRowsUpdated = pstmt.executeUpdate();
@@ -271,8 +272,8 @@ public class Member {
 	
 	// 로그인 시간 기록
 	public void logLogoutTime() throws SQLException {
-	    String logSql = "INSERT INTO LOGRECORD (mid, LOGINTIME, LOGOUTTIME) VALUES (?, systimestamp, null)";
-	    String updateSql = "UPDATE membertable SET MLOGINDATE = systimestamp WHERE mid = ?";
+	    String logSql = "insert into logrecord (mid, logintime, logouttime) values (?, systimestamp, null)";
+	    String updateSql = "update membertable set mlogindate = systimestamp where mid = ?";
 	    
 	    try (PreparedStatement logPstmt = conn.prepareStatement(logSql);
 	         PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
@@ -286,13 +287,13 @@ public class Member {
 	}
 	
 	public void displayLogoutTime() throws SQLException {
-	    String getTimeSql = "SELECT MLOGOUTDATE FROM membertable WHERE MID = ?";
+	    String getTimeSql = "select mlogoutdate from membertable where mid = ?";
 
 	    try (PreparedStatement getTimePstmt = conn.prepareStatement(getTimeSql)) {
 	        getTimePstmt.setString(1, this.mid);
 	        try (ResultSet rs = getTimePstmt.executeQuery()) {
 	            if (rs.next()) {
-	            	Timestamp logoutTime = rs.getTimestamp("MLOGOUTDATE");
+	            	Timestamp logoutTime = rs.getTimestamp("mlogoutdate");
 	                System.out.println(" 로그아웃 성공! 로그아웃 시간: " + logoutTime);
 	            }
 	        }
@@ -348,7 +349,7 @@ public class Member {
 
         // DB에 수정내용 업데이트
         try {
-            String updateSql = "UPDATE membertable SET mphone=?, maddress=? WHERE mid=?";
+            String updateSql = "update membertable set mphone=?, maddress=? where mid=?";
             try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
                 pstmt.setString(1, newPhone);
                 pstmt.setString(2, newAddress);
@@ -382,7 +383,7 @@ public class Member {
         // 새 비밀번호와 비밀번호 일치 확인
         if (newPassword.equals(confirmPassword)) {
             try {
-                String updatePasswordSql = "UPDATE membertable SET mpassword=? WHERE mid=?";
+                String updatePasswordSql = "update membertable set mpassword=? where mid=?";
                 try (PreparedStatement pstmt = conn.prepareStatement(updatePasswordSql)) {
                     pstmt.setString(1, newPassword);
                     pstmt.setString(2, this.mid);
@@ -415,11 +416,12 @@ public class Member {
             if(confirm.equals("Y")) {
 	            try {
 	            	// 회원을 비활성화 상태로 변경
-	                String deleteSql = "UPDATE membertable SET menabled  = 0 WHERE mid=?";
+	                String deleteSql = "update membertable set menabled  = 0 where mid=?";
 	                try (PreparedStatement pstmt = conn.prepareStatement(deleteSql)) {
 	                    pstmt.setString(1, this.getMid());
 	                    pstmt.executeUpdate();
 	                    System.out.println("회원 탈퇴가 완료되었습니다.");
+	                    isLoggedIn = false; // 로그인 상태 업데이트
 	                    memberMenu();
 	                }
 	            } catch (SQLException e) {
@@ -443,7 +445,7 @@ public class Member {
     	System.out.print("전화번호 입력: ");
     	String mphone = scanner.nextLine();
     	try {
-			String sql = "SELECT mid FROM membertable WHERE mname=? AND mphone=?";
+			String sql = "select mid from membertable where mname=? and mphone=?";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 			pstmt.setString(1, mname);  
 			pstmt.setString(2, mphone);  
@@ -474,7 +476,7 @@ public class Member {
     	String mphone = scanner.nextLine();
     	
     	try {
-            String sql = "SELECT mpassword FROM membertable WHERE mid=? AND mname=? AND mphone=?";
+            String sql = "select mpassword from membertable where mid=? and mname=? and mphone=?";
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, mid);  
             pstmt.setString(2, mname);
@@ -493,6 +495,149 @@ public class Member {
             e.printStackTrace();
         }
     }
+    
+    //관리자용 회원목록 보기
+    public void showMemberList() {
+    	if ("ROLE ADMIN".equals(getMrole())) { 			// 관리자인지 확인
+            int pageSize = 10;  									// 한 페이지에 보여줄 회원 수
+            int currentPage = 1; 								// 현재 페이지 초기값
+
+            while (true) {
+                System.out.println("============= 회원 목록 =============");
+                System.out.println( "페이지[ " + currentPage + " ]");
+                try {
+	            	String sql = "" +
+                        "select * from (" +
+                        "  select mid, mname, mphone, maddress, msex, menabled, " +
+                        "  ROW_NUMBER() over (order by mid asc) as rnum " +
+                        "  from membertable " +
+                        ") where rnum between ? and ?";
+                	
+                    PreparedStatement pstmt = conn.prepareStatement(sql);
+                    pstmt.setInt(1, (currentPage - 1) * pageSize + 1); // 시작 행 번호
+                    pstmt.setInt(2, currentPage * pageSize); // 종료 행 번호
+                    ResultSet rs = pstmt.executeQuery();
+
+                    // 결과가 없을 경우 체크
+                    boolean hasResult = false;
+                    
+                    while (rs.next()) {
+                    	hasResult = true;
+                        String mid = rs.getString("mid");
+                        String mname = rs.getString("mname");
+                        String mphone = rs.getString("mphone");
+                        String maddress = rs.getString("maddress");
+                        String msex = rs.getString("msex");
+                        String menabled = rs.getString("menabled");
+                        
+                        System.out.println("아이디: " + mid);
+                        System.out.println("이름: " + mname);
+                        System.out.println("전화번호: " + mphone);
+                        System.out.println("주소: " + maddress);
+                        System.out.println("성별: " + msex);
+                        System.out.println("활성화 상태: " + menabled);
+                        System.out.println("---------------------------------");
+                        
+                    }
+                    if (!hasResult) {
+                        System.out.println("더 이상 회원 목록이 없습니다.");
+                    }
+                    rs.close();
+                    pstmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("===========================================");
+
+                // 다음 페이지, 이전 페이지 또는 종료 선택
+                System.out.println("1. 이전 페이지 | 2. 다음 페이지 |  3. 회원 비활성화  |  4. 회원 활성화  |  5. 돌아가기  |  6. 종료  ");
+                System.out.print("선택: ");
+                String choice = scanner.nextLine();
+
+                switch (choice) {
+                case "1":
+                	// 페이지 이동
+                    if (currentPage > 1) {
+                        currentPage--;
+                    } else {
+                        System.out.println("이전 페이지가 없습니다.");
+                    }
+                    break;
+                case "2":
+                    if (currentPage * pageSize < board.getTotalPageCount()) {
+                        currentPage++;
+                    } else {
+                        System.out.println("다음 페이지가 없습니다.");
+                    }
+                    break;
+                case "3":
+                    // 회원비활성화 시키기(관리자)
+                	deactiveMember();
+                    break;
+                case "4":
+                    // 회원 활성화 시키기(관리자)
+                	activeMember();
+                    break;
+                case "5":
+                    // 메뉴화면 돌아가기
+                	board.mainMenu();
+                    break;
+                case "6":
+                    // 종료
+                    return;
+                default:
+                    System.out.println("잘못된 입력입니다.");
+                    break;
+                }
+          }
+       } else {
+              System.out.println("회원 목록 보기를 사용할 수 있는 권한이 없습니다.");
+         }
+    }
+    
+	//회원탈퇴(비활성화)
+	public void deactiveMember() {
+	    System.out.print("비활성화할 회원 아이디 입력: ");
+	    String memberMid = scanner.nextLine();
+
+	    try {
+	        String sql = "UPDATE membertable SET menabled = 0 WHERE mid = ?";
+	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	        pstmt.setString(1, memberMid);
+	        int rowsAffected = pstmt.executeUpdate();
+
+	        if (rowsAffected > 0) {
+	            System.out.println("회원 비활성화 성공: " + memberMid);
+	        } else {
+	            System.out.println("비활성화 실패: 회원을 찾을 수 없습니다.");
+	        }
+	        pstmt.close();
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	}
+	
+	//회원 활성화(비활성화 상태인 회원 활성화)
+	public void activeMember() {
+	    System.out.print("활성화할 회원 아이디 입력: ");
+	    String memberMid = scanner.nextLine();
+
+	    try {
+	        String sql = "UPDATE membertable SET menabled = 1 WHERE mid = ?";
+	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	        pstmt.setString(1, memberMid);
+	        int rowsAffected = pstmt.executeUpdate();
+
+	        if (rowsAffected > 0) {
+	            System.out.println("회원 활성화 성공: " + memberMid);
+	        } else {
+	            System.out.println("활성화 실패: 회원을 찾을 수 없습니다.");
+	        }
+	        pstmt.close();
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	}
     
     //프로그램 종료
     public void exit() {
