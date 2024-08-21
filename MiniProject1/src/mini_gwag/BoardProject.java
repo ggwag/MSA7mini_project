@@ -12,6 +12,7 @@ public class BoardProject {
 		
 		Connection conn = null;
 		Member member = null;
+		Board board = null;
 		try {
 		//JDBC Driver 등록
 		Class.forName("oracle.jdbc.OracleDriver");
@@ -22,7 +23,7 @@ public class BoardProject {
 			"1004"
 			);	
 		//멤버 객체 생성 및 메뉴 표시하기
-		member = new Member(conn);
+		member = new Member(conn, board);
 		member.memberMenu();
 		// 연결 끊기
 		} catch (ClassNotFoundException e) {

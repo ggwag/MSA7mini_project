@@ -23,8 +23,9 @@ public class Member {
 	private String mrole;		// 사용자 권한(관리자 유무)
 	
 	private Board board;
-	public Member(Connection conn) {
+	public Member(Connection conn, Board board) {
         this.conn = conn;
+        this.board = board;
     }
 	
 	//메뉴 화면
@@ -501,6 +502,8 @@ public class Member {
     	if ("ROLE ADMIN".equals(getMrole())) { 					// 관리자인지 확인
             int pageSize = 10;  								// 한 페이지에 보여줄 회원 수
             int currentPage = 1; 								// 현재 페이지 초기값
+            
+            Board board = new Board(conn, this);
 
             while (true) {
                 System.out.println("============= 회원 목록 =============");
@@ -562,7 +565,7 @@ public class Member {
                     }
                     break;
                 case "2":
-                    if (currentPage * pageSize < board.getTotalPageCount()) {
+                    if (currentPage * pageSize < board.getTotalCount()) {
                         currentPage++;
                     } else {
                         System.out.println("다음 페이지가 없습니다.");
@@ -578,10 +581,12 @@ public class Member {
                     break;
                 case "5":
                     // 메뉴화면 돌아가기
-                	board.mainMenu();
+                	Board boardMenu = new Board(conn, this);
+                	boardMenu.mainMenu();
                     break;
                 case "6":
                     // 종료
+                	exit();
                     return;
                 default:
                     System.out.println("잘못된 입력입니다.");
