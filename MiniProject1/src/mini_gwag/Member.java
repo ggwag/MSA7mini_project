@@ -46,7 +46,7 @@ public class Member {
 			}
 		}
 	}
-	//게시판 -> 멤버 회원가입
+	// 멤버 회원가입
 	public void signup() {
 		//회원의 정보 입력 받기
 		System.out.println("====================  회원가입  =====================");
@@ -116,10 +116,10 @@ public class Member {
 		if(menuNo.equals("1")) {
 			//membertable 테이블에 게시물 정보 저장
 			try {
-				String sql = "" +
+				String memberUpdateSql = "" +
 					"insert into membertable (mid, mpassword, mname, mphone, maddress, msex, mrole) " +
 					"values (?, ?, ?, ?, ?, ?, ?)";
-				PreparedStatement pstmt = conn.prepareStatement(sql);
+				PreparedStatement pstmt = conn.prepareStatement(memberUpdateSql);
 				pstmt.setString(1, this.getMid());
 				pstmt.setString(2, this.getMpassword());
 				pstmt.setString(3, this.getMname());
@@ -151,8 +151,8 @@ public class Member {
         this.mpassword = scanner.nextLine();
         
 		try {
-			String sql = "select mid, mrole from membertable where mid=? and mpassword=? and menabled = 1";
-			PreparedStatement pstmt = conn.prepareStatement(sql);
+			String signinSql = "select mid, mrole from membertable where mid=? and mpassword=? and menabled = 1";
+			PreparedStatement pstmt = conn.prepareStatement(signinSql);
 	        pstmt.setString(1, this.mid);  			// 아이디 설정
 	        pstmt.setString(2, this.mpassword);  	// 비밀번호 설정
 			
@@ -195,6 +195,45 @@ public class Member {
 		}
 	}
 	
+	//로그아웃
+	public void signout() {
+	    boolean logUpdated = false;  // 로그아웃 업데이트 여부 확인
+	    try {
+	        // LOGRECORD 테이블의 로그아웃 시간 업데이트
+	        String logoutSql = "update logrecord set logouttime = systimestamp where mid = ? and logouttime IS NULL";
+	        try (PreparedStatement pstmt = conn.prepareStatement(logoutSql)) {
+	            pstmt.setString(1, this.mid);
+	            int rowsUpdated = pstmt.executeUpdate();
+	            if (rowsUpdated > 0) {
+	                logUpdated = true;
+	            }
+	        }
+
+	        // membertable 테이블의 로그아웃 시간 갱신
+	        String memberTableSql = "update membertable set mlogoutdate = sysdate where mid = ?";
+	        try (PreparedStatement pstmt = conn.prepareStatement(memberTableSql)) {
+	            pstmt.setString(1, this.mid);
+	            int memberRowsUpdated = pstmt.executeUpdate();
+	            if (memberRowsUpdated > 0) {
+	                logUpdated = true;
+	            }
+	        }
+	        // 로그아웃 시간 업데이트 여부 확인
+	        if (logUpdated) {
+	            System.out.println("로그아웃 시간 업데이트 성공");
+	            displayLogoutTime();  	// 로그아웃 시간을 출력
+	        } else {
+	            System.out.println("로그아웃 시간 업데이트 실패");
+	        }
+	        this.isLoggedIn = false; 	// 로그아웃 상태로 변경
+	        System.out.println("로그아웃이 완료되었습니다.");
+	        memberMenu();
+	        
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	}
+	
 	// 로그인 시간 기록
 	public void logLoginTime() throws SQLException {
 	    String logSql = "insert into logrecord (mid, logintime, logouttime) values (?, systimestamp, null)";
@@ -226,51 +265,8 @@ public class Member {
 	    }
 	}
 	
-	//로그아웃
-	public void signout() {
-	    boolean logUpdated = false;  // 로그아웃 업데이트 여부 확인
-	    try {
-	        // LOGRECORD 테이블의 로그아웃 시간 업데이트
-	        String logOutSql = "update logrecord set logouttime = systimestamp where mid = ? and logouttime IS NULL";
-	        try (PreparedStatement pstmt = conn.prepareStatement(logOutSql)) {
-	            pstmt.setString(1, this.mid);
-	            int rowsUpdated = pstmt.executeUpdate();
-	            if (rowsUpdated > 0) {
-	                logUpdated = true;
-	            }
-	        }
-
-	        // membertable 테이블의 로그아웃 시간 갱신
-	        String memberTableSql = "update membertable set mlogoutdate = sysdate where mid = ?";
-	        try (PreparedStatement pstmt = conn.prepareStatement(memberTableSql)) {
-	            pstmt.setString(1, this.mid);
-	            int memberRowsUpdated = pstmt.executeUpdate();
-	            if (memberRowsUpdated > 0) {
-	                logUpdated = true;
-	            }
-	        }
-
-	        // 로그아웃 시간 업데이트 여부 확인
-	        if (logUpdated) {
-	            System.out.println("로그아웃 시간 업데이트 성공");
-	            displayLogoutTime();  	// 로그아웃 시간을 출력
-	        } else {
-	            System.out.println("로그아웃 시간 업데이트 실패");
-	        }
-
-	        this.isLoggedIn = false; 	// 로그아웃 상태로 변경
-	        this.mid = null;           // 아이디 초기화
-	        this.mpassword = null;     // 비밀번호 초기화
-	        this.mrole = null;         // 권한 초기화
-	        System.out.println("로그아웃이 완료되었습니다.");
-	        memberMenu();
-	        
-	    } catch (SQLException e) {
-	        e.printStackTrace();
-	    }
-	}
 	
-	// 로그인 시간 기록
+	// 로그아웃 시간 기록
 	public void logLogoutTime() throws SQLException {
 	    String logSql = "insert into logrecord (mid, logintime, logouttime) values (?, systimestamp, null)";
 	    String updateSql = "update membertable set mlogindate = systimestamp where mid = ?";
@@ -286,6 +282,7 @@ public class Member {
 	    }
 	}
 	
+	//로그아웃 시간 출력
 	public void displayLogoutTime() throws SQLException {
 	    String getTimeSql = "select mlogoutdate from membertable where mid = ?";
 
@@ -305,7 +302,7 @@ public class Member {
     	 return mid != null && !mid.trim().isEmpty();
     }
     
- // 회원정보 수정
+    // 회원정보 수정
     public void updateMember() {
         while (true) {
             System.out.print("비밀번호를 입력해주세요: ");
@@ -328,10 +325,10 @@ public class Member {
                         break;
                     case "3":
                     	//돌아가기
-                        return;                  // 메서드 종료
+                        return;                  // 종료
                     default:
                         System.out.println("올바른 접근이 아닙니다.");
-                        break; // 잘못된 접근일 경우 루프 계속
+                        break;
                 }
             } else {
                 System.out.println("비밀번호가 틀렸습니다. 다시 시도해주세요.");
@@ -349,8 +346,8 @@ public class Member {
 
         // DB에 수정내용 업데이트
         try {
-            String updateSql = "update membertable set mphone=?, maddress=? where mid=?";
-            try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+            String updateUserSql = "update membertable set mphone=?, maddress=? where mid=?";
+            try (PreparedStatement pstmt = conn.prepareStatement(updateUserSql)) {
                 pstmt.setString(1, newPhone);
                 pstmt.setString(2, newAddress);
                 pstmt.setString(3, this.mid);
@@ -363,6 +360,9 @@ public class Member {
             e.printStackTrace();
             System.out.println("회원 정보 수정 중 오류가 발생했습니다.");
         }
+        //수정후 메인메뉴로 돌아가기
+        Board board = new Board(conn, this);
+        board.mainMenu();
     }
     
     public void updateMpassword() {
@@ -383,8 +383,8 @@ public class Member {
         // 새 비밀번호와 비밀번호 일치 확인
         if (newPassword.equals(confirmPassword)) {
             try {
-                String updatePasswordSql = "update membertable set mpassword=? where mid=?";
-                try (PreparedStatement pstmt = conn.prepareStatement(updatePasswordSql)) {
+                String updateMpasswordSql = "update membertable set mpassword=? where mid=?";
+                try (PreparedStatement pstmt = conn.prepareStatement(updateMpasswordSql)) {
                     pstmt.setString(1, newPassword);
                     pstmt.setString(2, this.mid);
                     pstmt.executeUpdate();
@@ -416,8 +416,8 @@ public class Member {
             if(confirm.equals("Y")) {
 	            try {
 	            	// 회원을 비활성화 상태로 변경
-	                String deleteSql = "update membertable set menabled  = 0 where mid=?";
-	                try (PreparedStatement pstmt = conn.prepareStatement(deleteSql)) {
+	                String withdrawSql = "update membertable set menabled  = 0 where mid=?";
+	                try (PreparedStatement pstmt = conn.prepareStatement(withdrawSql)) {
 	                    pstmt.setString(1, this.getMid());
 	                    pstmt.executeUpdate();
 	                    System.out.println("회원 탈퇴가 완료되었습니다.");
@@ -445,8 +445,8 @@ public class Member {
     	System.out.print("전화번호 입력: ");
     	String mphone = scanner.nextLine();
     	try {
-			String sql = "select mid from membertable where mname=? and mphone=?";
-			PreparedStatement pstmt = conn.prepareStatement(sql);
+			String findIdSql = "select mid from membertable where mname=? and mphone=?";
+			PreparedStatement pstmt = conn.prepareStatement(findIdSql);
 			pstmt.setString(1, mname);  
 			pstmt.setString(2, mphone);  
 			
@@ -476,8 +476,8 @@ public class Member {
     	String mphone = scanner.nextLine();
     	
     	try {
-            String sql = "select mpassword from membertable where mid=? and mname=? and mphone=?";
-            PreparedStatement pstmt = conn.prepareStatement(sql);
+            String findPasswordSql = "select mpassword from membertable where mid=? and mname=? and mphone=?";
+            PreparedStatement pstmt = conn.prepareStatement(findPasswordSql);
             pstmt.setString(1, mid);  
             pstmt.setString(2, mname);
             pstmt.setString(3, mphone);
@@ -498,8 +498,8 @@ public class Member {
     
     //관리자용 회원목록 보기
     public void showMemberList() {
-    	if ("ROLE ADMIN".equals(getMrole())) { 			// 관리자인지 확인
-            int pageSize = 10;  									// 한 페이지에 보여줄 회원 수
+    	if ("ROLE ADMIN".equals(getMrole())) { 					// 관리자인지 확인
+            int pageSize = 10;  								// 한 페이지에 보여줄 회원 수
             int currentPage = 1; 								// 현재 페이지 초기값
 
             while (true) {
@@ -514,8 +514,8 @@ public class Member {
                         ") where rnum between ? and ?";
                 	
                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                    pstmt.setInt(1, (currentPage - 1) * pageSize + 1); // 시작 행 번호
-                    pstmt.setInt(2, currentPage * pageSize); // 종료 행 번호
+                    pstmt.setInt(1, (currentPage - 1) * pageSize + 1); 	// 시작 행 번호
+                    pstmt.setInt(2, currentPage * pageSize); 			// 종료 행 번호
                     ResultSet rs = pstmt.executeQuery();
 
                     // 결과가 없을 경우 체크
@@ -537,7 +537,6 @@ public class Member {
                         System.out.println("성별: " + msex);
                         System.out.println("활성화 상태: " + menabled);
                         System.out.println("---------------------------------");
-                        
                     }
                     if (!hasResult) {
                         System.out.println("더 이상 회원 목록이 없습니다.");
@@ -548,7 +547,6 @@ public class Member {
                     e.printStackTrace();
                 }
                 System.out.println("===========================================");
-
                 // 다음 페이지, 이전 페이지 또는 종료 선택
                 System.out.println("1. 이전 페이지 | 2. 다음 페이지 |  3. 회원 비활성화  |  4. 회원 활성화  |  5. 돌아가기  |  6. 종료  ");
                 System.out.print("선택: ");
@@ -601,8 +599,8 @@ public class Member {
 	    String memberMid = scanner.nextLine();
 
 	    try {
-	        String sql = "UPDATE membertable SET menabled = 0 WHERE mid = ?";
-	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	        String deactiveSql = "UPDATE membertable SET menabled = 0 WHERE mid = ?";
+	        PreparedStatement pstmt = conn.prepareStatement(deactiveSql);
 	        pstmt.setString(1, memberMid);
 	        int rowsAffected = pstmt.executeUpdate();
 
@@ -623,8 +621,8 @@ public class Member {
 	    String memberMid = scanner.nextLine();
 
 	    try {
-	        String sql = "UPDATE membertable SET menabled = 1 WHERE mid = ?";
-	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	        String activeSql = "UPDATE membertable SET menabled = 1 WHERE mid = ?";
+	        PreparedStatement pstmt = conn.prepareStatement(activeSql);
 	        pstmt.setString(1, memberMid);
 	        int rowsAffected = pstmt.executeUpdate();
 
@@ -639,6 +637,11 @@ public class Member {
 	    }
 	}
     
+	//회원목록 관리자 여부 확인
+	public boolean isAdmin() {
+		return "ROLE ADMIN".equals(this.getMrole());
+	}
+	
     //프로그램 종료
     public void exit() {
 		if(conn != null) {
@@ -650,14 +653,5 @@ public class Member {
 		System.out.println("=============================  프로그램 종료 ==============================");
 		System.exit(0);
 	}
-    
-    //회원목록을 게시판에 나타내위해 관리자인지 확인
-    public String getMrole() {
-        return this.mrole;
-    }
-    
-    public boolean isAdmin() {
-        return "ROLE ADMIN".equals(this.getMrole());
-    }
     
 }

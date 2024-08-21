@@ -23,9 +23,10 @@ public class Board {
 	private Member member;
 	private int currentPage = 1; // 현재 페이지 번호
 	
-	// 전체 페이지 목록 보기
-	private void showList() {
-	    list(currentPage);
+	//데이터베이스 연결, 로그인한 사용자의 정보를 Board에 전달하기 위해 생성
+	public Board(Connection conn, Member member) {
+		this.conn = conn;
+        this.member = member;
 	}
 	
 	//게시물 목록 및 페이징 처리
@@ -42,30 +43,25 @@ public class Board {
 		//boardtable에서 게시물 정보를 페이징처리해서 가져오기
 		try {
 			// 게시물 번호를 기준으로 내림차순 정렬 후 페이지 번호에 맞는 게시물 조회
-			String sql = "" +
+			String listSql = "" +
 					"select * from (" +
 		            "select bno, bwriter, btitle, bcount, bdate, " +
 		            "ROW_NUMBER() over (order by bno desc) as rnum " +
 		            "from boardtable " +
 		            ") where rnum between ? and ?";
-			PreparedStatement pstmt = conn.prepareStatement(sql);
+			PreparedStatement pstmt = conn.prepareStatement(listSql);
 			pstmt.setInt(1, startRow);
 	        pstmt.setInt(2, endRow);
 			ResultSet rs = pstmt.executeQuery();
 			// 조회된 게시물 목록 출력
-			while(rs.next()) {		
-				Board board = new Board(conn, member);
-				board.setBno(rs.getInt("bno"));
-				board.setBwriter(rs.getString("bwriter"));
-				board.setBtitle(rs.getString("btitle"));
-				board.setBcount(rs.getInt("bcount"));
-				board.setBdate(rs.getDate("bdate"));
+			while(rs.next()) {
+				//rs에 직접 값을 가져와서 게시물 내용을 출력
 				System.out.printf("%-16s%-16s%-16s%-16s%-16s\n", 
-						board.getBno(), 
-						board.getBwriter(),
-						board.getBtitle(),
-						board.getBcount(),
-						board.getBdate());
+						rs.getInt("bno"), 
+						rs.getString("bwriter"),
+						rs.getString("btitle"),
+						rs.getInt("bcount"),
+						rs.getDate("bdate"));
 			}
 			rs.close();
 			pstmt.close();
@@ -95,7 +91,7 @@ public class Board {
 	            }
 	            break;
 	        case 2:
-	            if (currentPage * page_size < getTotalCount()) { // 총 게시물 수를 반환
+	            if (currentPage * page_size < getTotalCount()) { 	// 총 게시물 수를 반환
 	                list(currentPage + 1); 	// 다음 페이지
 	            } else {
 	                System.out.println("다음 페이지가 없습니다.");
@@ -105,7 +101,7 @@ public class Board {
 	        case 3:
 	            System.out.print("이동할 페이지 번호: ");
 	            int page = Integer.parseInt(scanner.nextLine());
-	            if (page >= 1 && page <= getTotalPageCount()) { // 총 페이지 수를 반환하는 메소드
+	            if (page >= 1 && page <= getTotalPageCount()) { 	// 총 페이지 수를 반환하는 메소드
 	                list(page); 			// 특정 페이지 이동
 	            } else {
 	                System.out.println("잘못된 페이지 번호입니다.");
@@ -126,12 +122,18 @@ public class Board {
 	    }
 	}
 	
+	// 전체 페이지 목록 보기
+	private void showBoardList() {
+	    list(currentPage);
+	}
+	
 	// 총 게시물 수를 반환
 	public int getTotalCount() {
 	    int totalCount = 0;
 	    try {
-	        String sql = "select count (*) from boardtable";
-	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	    	//count(*) = 특정 테이블에 있는 전체 행의 수를 계산 (COUNT는 SQL에서 제공하는 집계 함수)
+	        String countSql = "select count (*) from boardtable";
+	        PreparedStatement pstmt = conn.prepareStatement(countSql);
 	        ResultSet rs = pstmt.executeQuery();
 	        if (rs.next()) {
 	            totalCount = rs.getInt(1);
@@ -144,7 +146,7 @@ public class Board {
 	    return totalCount;
 	}
 
-	// 총 페이지 수를 반환
+	//전체 게시물 수를 기반으로 총 페이지 수를 반환
 	public int getTotalPageCount() {
 		int page_size = 10; //한 페이지에 출력할 게시물 수
 	    return (int) Math.ceil((double) getTotalCount() / page_size);
@@ -153,25 +155,22 @@ public class Board {
 	// 게시물 메인메뉴 화면
 	public void mainMenu() {
 		while (true) { 
-			// 메인 메뉴가 반복되어야 함
+			// 메인 메뉴 반복
 			System.out.println("---------------------------------------------------------------------------------------------");
 			System.out.println("메뉴: 1.게시물 생성 |  2.게시물 목록  |  3.게시물 삭제 |  4.종료   | 5.로그아웃  |  6.개인정보수정   |   7.회원탈퇴  ");
 			// 관리자인 경우에만 '8. 회원 목록' 옵션을 추가
 			if ("ROLE ADMIN".equals(member.getMrole())) {
-				System.out.println("       8. 회원 목록 보기");
+				System.out.println("    8. 회원 목록 조회");
 			}
-			
 			System.out.print("메뉴선택: ");
 			String menuNo = scanner.nextLine();
 			System.out.println();
 			System.out.println("---------------------------------------------------------------------------------------------");
 			System.out.println();
 			
-			
-			
 			switch(menuNo) {
 				case "1" -> create();				//게시물 생성
-				case "2" -> showList();				//게시물 목록
+				case "2" -> showBoardList();				//게시물 목록
 				case "3" -> delete();				//게시물 삭제
 				case "4" -> exit();					//게시판 종료
 				case "5" -> member.signout(); 		//회원 로그아웃
@@ -190,10 +189,6 @@ public class Board {
 			}
 		}	
 	}
-	public Board(Connection conn, Member member) {
-		this.conn = conn;
-        this.member = member;
-	}
 	
 	//게시물 생성
 	public void create() {
@@ -208,9 +203,9 @@ public class Board {
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
 		
-        // 로그인된 사용자의 mid를 작성자로 설정
+        // 로그인된 사용자의 mid를 작성자로 설정  
         String writer = member.getMid();
-		
+        
         // 보조메뉴 출력(게시물 생성 확인 문구)
 		System.out.println("-------------------------------------------------------------------");
 		System.out.println("게시물 생성: 1.확인 | 2.취소");
@@ -218,24 +213,34 @@ public class Board {
 		String menuNo = scanner.nextLine();
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
-		if(menuNo.equals("1")) {
-			// boardtable 테이블에 게시물 정보 저장
-			try {
-				String sql =
-					"insert into boardtable (bno, btitle, bcontent, bwriter, bdate) " +
-					"values (SEQ_BNO.NEXTVAL, ?, ?, ?, sysdate)";
-				PreparedStatement pstmt = conn.prepareStatement(sql);
-				pstmt.setString(1, board.getBtitle());
-				pstmt.setString(2, board.getBcontent());
-				pstmt.setString(3, writer);
-				pstmt.executeUpdate();
-				System.out.println("----------------- 게시물이 등록되었습니다. ------------------");
-				pstmt.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("----------------- 게시물 생성 중 오류가 발생했습니다. -------------------");
-				exit();
-			}
+		switch(menuNo) {
+			case "1" :
+				try {
+					// boardtable 테이블에 게시물 정보 저장
+					String createSql =
+						"insert into boardtable (bno, btitle, bcontent, bwriter, bdate) " +
+						"values (SEQ_BNO.NEXTVAL, ?, ?, ?, sysdate)";
+					
+					PreparedStatement pstmt = conn.prepareStatement(createSql);
+					pstmt.setString(1, board.getBtitle());
+					pstmt.setString(2, board.getBcontent());
+					pstmt.setString(3, writer);
+					pstmt.executeUpdate();
+					System.out.println("----------------- 게시물이 등록되었습니다. ------------------");
+					pstmt.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("----------------- 게시물 생성 중 오류가 발생했습니다. -------------------");
+					exit();
+				}
+				break;
+			case "2":
+				System.out.println("게시물 생성이 취소되었습니다.");
+				break;
+				
+			default:
+				System.out.println("잘못된 선택입니다.");
+				break;
 		}
 		// 게시물 목록으로 돌아가기
 		mainMenu();
@@ -252,11 +257,11 @@ public class Board {
 		System.out.println("-------------------------------------------------------------------");
 		// boardtable 테이블에서 해당 게시물을 가져와 출력
 		try {
-			String sql = "" +
+			String readSql = "" +
 				"select bno, btitle, bcontent, bwriter, bdate, bcount " +
 				"from boardtable " +
 				"where bno=?";
-			PreparedStatement pstmt = conn.prepareStatement(sql);
+			PreparedStatement pstmt = conn.prepareStatement(readSql);
 			pstmt.setInt(1, bno);
 			ResultSet rs = pstmt.executeQuery();
 			
@@ -269,10 +274,15 @@ public class Board {
 					board.setBdate(rs.getDate("bdate"));
 					board.setBcount(rs.getInt("bcount"));
 				
-					// 조회수 증가
 		            board.increseBcount(); 		// 조회수 증가
 		            updateBoardCount(board); 	// 조회수 업데이트
-					
+		            //직접적인 db에서 데이터를 조회하는 것은 좋은 방법이 아니다.
+//					System.out.println("번호: " + rs.getInt("bno"));
+//					System.out.println("제목: " + rs.getString("btitle"));
+//					System.out.println("내용: " + rs.getString("bcontent"));
+//					System.out.println("작성자: " + rs.getString("bwriter"));
+//					System.out.println("작성날짜: " + rs.getDate("bdate"));
+//					System.out.println("조회수: " + rs.getInt("bcount"));
 		            //게시물 상세정보
 					System.out.println("------------------------------------------------------");
 					System.out.println("번호: " + board.getBno());
@@ -312,8 +322,6 @@ public class Board {
 	                        // 게시물 삭제
 	                        delete();
 	                        mainMenu();  // 삭제 후 메인 메뉴로 돌아감
-	                    } else {
-	                        System.out.println("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
 	                    }
 	                    break;
 	                case "3":
@@ -345,6 +353,7 @@ public class Board {
 		//비밀번호 확인
 		System.out.print("비밀번호를 입력해주세요: ");
 		String inputMpassword = scanner.nextLine();
+		
 		//비밀번호가 맞다면 게시물 수정 내용 출력
 		if(inputMpassword.equals(member.getMpassword())) {
 			System.out.println("-------------------------------------------------------------------");
@@ -364,30 +373,35 @@ public class Board {
 			System.out.println();
 			System.out.println("-------------------------------------------------------------------");
 		
-			if(menuNo.equals("1")) {
-				//boardtable 테이블에 게시물 정보 수정
-				try {
-					String sql = "" +
-						"update boardtable set btitle=?, bcontent=?, bwriter=? " +
-						"where bno=?";
-					PreparedStatement pstmt = conn.prepareStatement(sql);
-					pstmt.setString(1, board.getBtitle());
-					pstmt.setString(2, board.getBcontent());
-					pstmt.setString(3, board.getBwriter());
-					pstmt.setInt(4, board.getBno());
-					pstmt.executeUpdate();
-					pstmt.close();
-					mainMenu();
-				} catch (Exception e) {
-					e.printStackTrace();
-					exit();
-				}
+			switch(menuNo) {
+				case"1":
+					try {
+						String updateSql = "" +
+							"update boardtable set btitle=?, bcontent=?" +
+							"where bno=?";
+						PreparedStatement pstmt = conn.prepareStatement(updateSql);
+						pstmt.setString(1, board.getBtitle());
+						pstmt.setString(2, board.getBcontent());
+						pstmt.setInt(3, board.getBno());
+						pstmt.executeUpdate();
+						pstmt.close();
+						System.out.println("게시물 수정이 완료되었습니다.");
+					} catch (Exception e) {
+							e.printStackTrace();
+					}
+					return;
+				case"2":
+					System.out.println("게시물 수정을 취소했습니다.");
+					return;
+				default:
+					System.out.println("잘못된 선택입니다.");
+					break;
 			}
 		} else {
 			System.out.println("비밀번호가 틀렸습니다.");
+			return;
 		}
 	}
-	
 	//게시물 삭제
 	public void delete() {
 		// 게시물 정보 삭제 bno를 찾아 삭제
@@ -404,6 +418,7 @@ public class Board {
 	    String writer = null;
 	    
 	    try {
+	    	//조회문
 	        String selectSql = "select bwriter from boardtable where bno=?";
 	        PreparedStatement selectPstmt = conn.prepareStatement(selectSql);
 	        selectPstmt.setInt(1, bno);
@@ -417,13 +432,11 @@ public class Board {
 	        }
 	        rs.close();
 	        selectPstmt.close();
-	        
 	        // 삭제권한 체크
 	        if (!isAdmin && !currentUserMid.equals(writer)) {
 	            System.out.println("삭제 권한이 없습니다. 작성자 본인 또는 관리자만 삭제할 수 있습니다.");
 	            return;
 	        }
-	        
 	        // 비밀번호 확인 (관리자는 생략)
 	        if (!isAdmin) {
 	            System.out.print("비밀번호 입력: ");
@@ -441,7 +454,8 @@ public class Board {
 	        System.out.println("-------------------------------------------------------------------");
 
 	        switch (menuNo) {
-	            case "1": // 게시물 삭제
+	            case "1": 
+	            	// 게시물 삭제문
 	                String deleteSql = "DELETE FROM boardtable WHERE bno=?";
 	                try (PreparedStatement deletePstmt = conn.prepareStatement(deleteSql)) {
 	                    deletePstmt.setInt(1, bno);
@@ -486,11 +500,11 @@ public class Board {
 		System.exit(0);
 	}
 	
-	// 게시물 조회수 업데이트 메소드
+	// 게시물 조회수 업데이트
 	public void updateBoardCount(Board board) {
 	    try {
-	        String sql = "update boardtable set bcount=? where bno=?";
-	        PreparedStatement pstmt = conn.prepareStatement(sql);
+	        String updateCountSql = "update boardtable set bcount=? where bno=?";
+	        PreparedStatement pstmt = conn.prepareStatement(updateCountSql);
 	        pstmt.setInt(1, board.getBcount()); // 증가된 조회수
 	        pstmt.setInt(2, board.getBno());
 	        pstmt.executeUpdate();
