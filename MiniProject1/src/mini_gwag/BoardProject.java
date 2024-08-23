@@ -22,10 +22,9 @@ public class BoardProject {
 			"user01", 
 			"1004"
 			);	
-		//멤버 객체 생성 및 메뉴 표시하기
+		//객체 생성 및 메뉴 표시하기
 		member = new Member(conn, board);
 		member.memberMenu();
-		// 연결 끊기
 		} catch (ClassNotFoundException e) {
 		    e.printStackTrace();
 		} catch (SQLException e) {

@@ -82,7 +82,7 @@ public class Board {
 
 	    // 페이지 이동 및 처리
 	    switch (menuNo) {
-	        case 1:
+	        case 1 -> {
 	            if (currentPage > 1) {
 	                list(currentPage - 1); 	// 이전 페이지
 	            } else {
@@ -90,7 +90,8 @@ public class Board {
 	                list(currentPage); 		// 현재 페이지 표시
 	            }
 	            break;
-	        case 2:
+	        }
+	        case 2 -> {
 	            if (currentPage * page_size < getTotalCount()) { 	// 총 게시물 수를 반환
 	                list(currentPage + 1); 	// 다음 페이지
 	            } else {
@@ -98,7 +99,8 @@ public class Board {
 	                list(currentPage); 		// 현재 페이지 표시
 	            }
 	            break;
-	        case 3:
+	        }
+	        case 3 -> {
 	            System.out.print("이동할 페이지 번호: ");
 	            int page = Integer.parseInt(scanner.nextLine());
 	            if (page >= 1 && page <= getTotalPageCount()) { 	// 총 페이지 수를 반환하는 메소드
@@ -108,17 +110,16 @@ public class Board {
 	                list(currentPage); 		// 현재 페이지 다시 표시
 	            }
 	            break;
-	        case 4:
+	        }
+	        case 4 ->
 	            // 게시물 상세보기
 	            read();
-	            break;
-	        case 5:
-	            // 메뉴로 돌아가기
+	        case 5 ->
 	            mainMenu();
-	            break;
-	        default:
+	        default -> {
 	            System.out.println("잘못된 선택입니다.");
 	            list(currentPage); 			// 현재 페이지 다시 표시
+	        }
 	    }
 	}
 	
@@ -170,7 +171,7 @@ public class Board {
 			
 			switch(menuNo) {
 				case "1" -> create();				//게시물 생성
-				case "2" -> showBoardList();				//게시물 목록
+				case "2" -> showBoardList();		//게시물 목록
 				case "3" -> delete();				//게시물 삭제
 				case "4" -> exit();					//게시판 종료
 				case "5" -> member.signout(); 		//회원 로그아웃
@@ -201,8 +202,6 @@ public class Board {
 		System.out.print("내용: "); 	
 		board.setBcontent(scanner.nextLine());
 		System.out.println();
-		System.out.println("-------------------------------------------------------------------");
-		
         // 로그인된 사용자의 mid를 작성자로 설정  
         String writer = member.getMid();
         
@@ -214,7 +213,7 @@ public class Board {
 		System.out.println();
 		System.out.println("-------------------------------------------------------------------");
 		switch(menuNo) {
-			case "1" :
+			case "1" -> {
 				try {
 					// boardtable 테이블에 게시물 정보 저장
 					String createSql =
@@ -233,14 +232,11 @@ public class Board {
 					System.out.println("----------------- 게시물 생성 중 오류가 발생했습니다. -------------------");
 					exit();
 				}
-				break;
-			case "2":
+			}
+			case "2" ->
 				System.out.println("게시물 생성이 취소되었습니다.");
-				break;
-				
-			default:
+			default ->
 				System.out.println("잘못된 선택입니다.");
-				break;
 		}
 		// 게시물 목록으로 돌아가기
 		mainMenu();
@@ -276,7 +272,7 @@ public class Board {
 				
 		            board.increseBcount(); 		// 조회수 증가
 		            updateBoardCount(board); 	// 조회수 업데이트
-		            //직접적인 db에서 데이터를 조회하는 것은 좋은 방법이 아니다.
+		            //직접적으로 db에서 데이터를 조회하는 것은 좋은 방법이 아니다.
 //					System.out.println("번호: " + rs.getInt("bno"));
 //					System.out.println("제목: " + rs.getString("btitle"));
 //					System.out.println("내용: " + rs.getString("bcontent"));
@@ -295,7 +291,8 @@ public class Board {
 					
 					// 현재 로그인한 사용자의 아이디
 		            String currentUserId = member.getMid();
-					
+		            // 사용자 권한 확인
+		            boolean isAdmin = "ROLE ADMIN".equals(member.getMrole());
 					// 보조메뉴 출력
 					System.out.println("------------------------------------------------------");
 					System.out.println("보조메뉴: 1.수정 | 2.삭제 | 3.돌아가기");
@@ -306,7 +303,7 @@ public class Board {
 					System.out.println();
 				
 				 switch (menuNo) {
-	                case "1":
+	                case "1" -> {
 	                    // 게시물 수정 권한 확인
 	                    if (currentUserId.equals(board.getBwriter())) {
 	                        // 게시물 수정
@@ -315,23 +312,25 @@ public class Board {
 	                    } else {
 	                        System.out.println("수정 권한이 없습니다. 작성자만 수정할 수 있습니다.");
 	                    }
-	                    break;
-	                case "2":
+	                }
+	                case "2" -> {
 	                    // 게시물 삭제 권한 확인
-	                    if (currentUserId.equals(board.getBwriter())) {
+	                    if (isAdmin || currentUserId.equals(board.getBwriter())) {
 	                        // 게시물 삭제
 	                        delete();
-	                        mainMenu();  // 삭제 후 메인 메뉴로 돌아감
+	                    } else {
+	                        System.out.println("삭제 권한이 없습니다. 작성자 본인또는 관리자만 삭제할 수 있습니다.");
 	                    }
-	                    break;
-	                case "3":
+	                    mainMenu();  // 삭제 후 메인 메뉴로 돌아감(권한이 없을 때도)
+	                }
+	                case "3" -> {
 	                    // 메뉴화면으로 돌아가기
 	                    mainMenu();
-	                    break;
-	                default:
+	                }
+	                default -> {
 	                    System.out.println("잘못된 접근입니다.");
 	                    mainMenu();  // 잘못된 입력이 발생하면 메인 메뉴로 돌아감
-	                    break;
+	                }
 	            }
 	        } else {
 	            System.out.println("게시물이 존재하지 않습니다.");
@@ -374,7 +373,7 @@ public class Board {
 			System.out.println("-------------------------------------------------------------------");
 		
 			switch(menuNo) {
-				case"1":
+				case"1" -> {
 					try {
 						String updateSql = "" +
 							"update boardtable set btitle=?, bcontent=?" +
@@ -390,12 +389,12 @@ public class Board {
 							e.printStackTrace();
 					}
 					return;
-				case"2":
+				}
+				case"2" -> {
 					System.out.println("게시물 수정을 취소했습니다.");
 					return;
-				default:
-					System.out.println("잘못된 선택입니다.");
-					break;
+				}
+				default ->	System.out.println("잘못된 선택입니다.");
 			}
 		} else {
 			System.out.println("비밀번호가 틀렸습니다.");
@@ -454,7 +453,7 @@ public class Board {
 	        System.out.println("-------------------------------------------------------------------");
 
 	        switch (menuNo) {
-	            case "1": 
+	            case "1" -> { 
 	            	// 게시물 삭제문
 	                String deleteSql = "DELETE FROM boardtable WHERE bno=?";
 	                try (PreparedStatement deletePstmt = conn.prepareStatement(deleteSql)) {
@@ -470,15 +469,12 @@ public class Board {
 	                    e.printStackTrace();
 	                    System.out.println("게시물 삭제 중 오류가 발생했습니다.");
 	                }
-	                break;
+	            }
 
-	            case "2": // 게시물 삭제 취소
+	            case "2" -> { // 게시물 삭제 취소
 	                System.out.println("게시물 삭제가 취소되었습니다.");
-	                break;
-
-	            default:
-	                System.out.println("잘못된 입력입니다.");
-	                break;
+	            }
+	            default ->	System.out.println("잘못된 입력입니다.");
 	        }
 	    } catch (SQLException e) {
 	        e.printStackTrace();

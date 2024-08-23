@@ -14,6 +14,7 @@ public class Member {
 	Scanner scanner = new Scanner(System.in);
 	Connection conn;
 	private boolean isLoggedIn; // 로그인 상태를 저장할 변수
+	
 	private String mid; 		// 아이디
 	private String mname; 		// 이름
 	private String mpassword; 	// 비밀번호
@@ -37,7 +38,6 @@ public class Member {
 			System.out.println("메뉴: 1.회원가입 | 2.로그인 | 3.아이디 찾기 | 4.비밀번호 찾기  | 5.종료");
 			System.out.print("메뉴선택: ");
 			String menuNo = scanner.nextLine();
-			System.out.println("-----------------------------------------------------------------------");
 			switch(menuNo) {
 				case "1" -> signup();		//회원가입
 				case "2" -> signin();		//로그인
@@ -108,7 +108,6 @@ public class Member {
 	        this.setMrole("ROLE USER");  // mrole이 null일 경우 기본값인 "ROLE USER"로 설정
 	    }
 		
-		System.out.println("======================================================");
 		//보조메뉴 출력
 		System.out.println("-----------------------------------------------------------------------");
 		System.out.println("1.회원가입 | 2.취소");
@@ -318,18 +317,13 @@ public class Member {
                 System.out.println();
 
                 switch (menuNo) {
-                    case "1":
-                        updateUser();            // 회원정보 수정
-                        break;
-                    case "2":
-                        updateMpassword();       // 비밀번호 변경
-                        break;
-                    case "3":
-                    	//돌아가기
-                        return;                  // 종료
-                    default:
-                        System.out.println("올바른 접근이 아닙니다.");
-                        break;
+                    case "1" ->	updateUser();            // 회원정보 수정
+                    case "2" -> updateMpassword();       // 비밀번호 변경
+                    case "3" -> {
+                    			System.out.println("메뉴화면으로 돌아갑니다"); 
+                    			return;                  // 종료
+                    }
+                    default  -> System.out.println("올바른 접근이 아닙니다.");
                 }
             } else {
                 System.out.println("비밀번호가 틀렸습니다. 다시 시도해주세요.");
@@ -372,7 +366,7 @@ public class Member {
     	System.out.print("현재 비밀번호를 입력해주세요: ");
     	String currentPassword = scanner.nextLine();
         if (!currentPassword.equals(this.mpassword)) {
-            System.out.println("현재 비밀번호가 틀렸습니다. 변경을 취소합니다.");
+            System.out.println("현재 비밀번호가 틀렸습니다. 다시입력해주세요.");
             return; // 비밀번호가 틀린 경우 메소드 종료
         }
         
@@ -556,42 +550,39 @@ public class Member {
                 String choice = scanner.nextLine();
 
                 switch (choice) {
-                case "1":
+                case "1" -> {
                 	// 페이지 이동
                     if (currentPage > 1) {
                         currentPage--;
                     } else {
                         System.out.println("이전 페이지가 없습니다.");
                     }
-                    break;
-                case "2":
+                }
+                case "2" -> {
                     if (currentPage * pageSize < board.getTotalCount()) {
                         currentPage++;
                     } else {
                         System.out.println("다음 페이지가 없습니다.");
                     }
-                    break;
-                case "3":
+                }
+                case "3" -> 
                     // 회원비활성화 시키기(관리자)
                 	deactiveMember();
-                    break;
-                case "4":
+                case "4" ->
                     // 회원 활성화 시키기(관리자)
                 	activeMember();
-                    break;
-                case "5":
+                case "5" -> {
                     // 메뉴화면 돌아가기
                 	Board boardMenu = new Board(conn, this);
                 	boardMenu.mainMenu();
-                    break;
-                case "6":
+                }
+                case "6" ->
                     // 종료
                 	exit();
-                    return;
-                default:
+                default -> {
                     System.out.println("잘못된 입력입니다.");
-                    break;
                 }
+              }
           }
        } else {
               System.out.println("회원 목록 보기를 사용할 수 있는 권한이 없습니다.");
